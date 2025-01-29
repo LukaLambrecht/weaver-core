@@ -869,6 +869,14 @@ def _main(args):
             # do training
             _logger.info('-' * 50)
             _logger.info('Epoch #%d training' % epoch)
+            # use custom training function if the model has one
+            if hasattr(model, 'train'):
+                _logger.info('Using model-specific custom training loop.')
+                model.train_single_epoch(train_loader, dev,
+                  loss_func=loss_func, optimizer=opt, scheduler=scheduler,
+                  epoch=epoch, steps_per_epoch=args.steps_per_epoch,
+                  grad_scaler=grad_scaler, tb_helper=tb)
+            # else use the default training loop
             train(model, loss_func, opt, scheduler, train_loader, dev, epoch,
                   steps_per_epoch=args.steps_per_epoch, grad_scaler=grad_scaler, tb_helper=tb)
 
