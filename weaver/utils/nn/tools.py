@@ -49,12 +49,16 @@ def _flatten_preds(model_output, label=None, mask=None, label_axis=1):
 
 
 def train_classification(
-        model, loss_func, opt, scheduler, train_loader, dev, epoch, steps_per_epoch=None, grad_scaler=None,
-        tb_helper=None):
+        model, loss_func, opt, scheduler, train_loader, dev, epoch,
+        steps_per_epoch=None, grad_scaler=None, tb_helper=None):
+    """
+    Perform classification training for one epoch
+    """
     model.train()
 
     data_config = train_loader.dataset.config
 
+    # initializations
     label_counter = Counter()
     total_loss = 0
     num_batches = 0
@@ -62,8 +66,12 @@ def train_classification(
     entry_count = 0
     count = 0
     start_time = time.time()
+
+    # loop over batches
     with tqdm.tqdm(train_loader) as tq:
         for X, y, _ in tq:
+
+            # prepare inputs and labels
             inputs = [X[k].to(dev) for k in data_config.input_names]
             label = y[data_config.label_names[0]].long().to(dev)
             entry_count += label.shape[0]
@@ -71,11 +79,17 @@ def train_classification(
                 mask = y[data_config.label_names[0] + '_mask'].bool().to(dev)
             except KeyError:
                 mask = None
+
+            # reset the optimizer
             opt.zero_grad()
+
+            # forward pass
             with torch.cuda.amp.autocast(enabled=grad_scaler is not None):
                 model_output = model(*inputs)
                 logits, label, _ = _flatten_preds(model_output, label=label, mask=mask)
                 loss = loss_func(logits, label)
+
+            # backpropagation
             if grad_scaler is None:
                 loss.backward()
                 opt.step()
@@ -90,6 +104,7 @@ def train_classification(
             _, preds = logits.max(1)
             loss = loss.item()
 
+            # update counters
             num_examples = label.shape[0]
             label_counter.update(label.numpy(force=True))
             num_batches += 1
@@ -98,6 +113,7 @@ def train_classification(
             total_loss += loss
             total_correct += correct
 
+            # update progress bar
             tq.set_postfix({
                 'lr': '%.2e' % scheduler.get_last_lr()[0] if scheduler else opt.defaults['lr'],
                 'Loss': '%.5f' % loss,
@@ -115,9 +131,11 @@ def train_classification(
                         tb_helper.custom_fn(model_output=model_output, model=model,
                                             epoch=epoch, i_batch=num_batches, mode='train')
 
+            # break if the number of batches ('steps') went over the threshold
             if steps_per_epoch is not None and num_batches >= steps_per_epoch:
                 break
 
+    # do some printouts
     time_diff = time.time() - start_time
     _logger.info('Processed %d entries in total (avg. speed %.1f entries/s)' % (entry_count, entry_count / time_diff))
     _logger.info('Train AvgLoss: %.5f, AvgAcc: %.5f' % (total_loss / num_batches, total_correct / count))
