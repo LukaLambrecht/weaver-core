@@ -877,8 +877,8 @@ def _main(args):
                   epoch=epoch, steps_per_epoch=args.steps_per_epoch,
                   grad_scaler=grad_scaler, tb_helper=tb)
             # else use the default training loop
-            train(model, loss_func, opt, scheduler, train_loader, dev, epoch,
-                  steps_per_epoch=args.steps_per_epoch, grad_scaler=grad_scaler, tb_helper=tb)
+            else: train(model, loss_func, opt, scheduler, train_loader, dev, epoch,
+                    steps_per_epoch=args.steps_per_epoch, grad_scaler=grad_scaler, tb_helper=tb)
 
             # save the state of the model after this epoch
             if args.model_prefix and (args.backend is None or local_rank == 0):
