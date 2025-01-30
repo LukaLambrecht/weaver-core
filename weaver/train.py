@@ -870,7 +870,7 @@ def _main(args):
             _logger.info('-' * 50)
             _logger.info('Epoch #%d training' % epoch)
             # use custom training function if the model has one
-            if hasattr(model, 'train'):
+            if hasattr(model, 'train_single_epoch'):
                 _logger.info('Using model-specific custom training loop.')
                 model.train_single_epoch(train_loader, dev,
                   loss_func=loss_func, optimizer=opt, scheduler=scheduler,
