@@ -8,8 +8,10 @@ plt.rc('text', usetex=True)
 from sklearn.metrics import roc_auc_score
 
 thisdir = os.path.abspath(os.path.dirname(__file__))
-topdir = os.path.abspath(os.path.join(thisdir, '../'))
+topdir = os.path.abspath(os.path.join(thisdir, '../../'))
 sys.path.append(topdir)
+
+from weaver.utils.disco import distance_correlation
 
 
 if __name__=='__main__':
@@ -18,11 +20,12 @@ if __name__=='__main__':
     parser = argparse.ArgumentParser()
     parser.add_argument('-i', '--inputfile', required=True)
     parser.add_argument('-s', '--signal_mask', required=True)
-    #parser.add_argument('-b', '--background_mask', required=True)
     parser.add_argument('-o', '--outputdir', default=None)
     parser.add_argument('-t', '--treename', default=None)
+    parser.add_argument('-c', '--correlations', default=[], nargs='+')
     parser.add_argument('--plot_score_dist', default=False, action='store_true')
     parser.add_argument('--plot_roc', default=False, action='store_true')
+    parser.add_argument('--plot_correlation', default=False, action='store_true')
     args = parser.parse_args()
 
     # open input file
@@ -33,7 +36,7 @@ if __name__=='__main__':
     # read branches as dict of arrays
     score_branches = [b for b in events.keys() if b.startswith('score_')]
     mask_branches = [args.signal_mask] #+ [args.background_mask]
-    branches_to_read = score_branches + mask_branches
+    branches_to_read = score_branches + mask_branches + args.correlations
     events = events.arrays(branches_to_read, library='np')
 
     # format the scores
@@ -93,3 +96,33 @@ if __name__=='__main__':
           ha='right', va='bottom', transform=ax.transAxes)
         leg = ax.legend()
         fig.savefig(os.path.join(args.outputdir,'roc.png'))
+
+    # calculate and plot correlations
+    if len(args.correlations)>0:
+        for cvarname in args.correlations:
+
+            # get variable
+            cvar = events[cvarname]
+            cvar_sig = cvar[labels==1]
+            cvar_bkg = cvar[labels==0]
+
+            # calculate correlation coefficient
+            limit = 1000 # cannot calculate the distance correlation on the full set, too much memory
+            randinds = np.random.choice(np.arange(len(cvar_bkg)), size=limit, replace=False)
+            dccoeff = distance_correlation(cvar_bkg[randinds], scores_bkg[randinds])
+            print('Distance correlation coefficient: {:.5f}'.format(dccoeff))
+
+            # make a plot of the correlation
+            if args.plot_correlation:
+                fig, ax = plt.subplots()
+                label = 'Bkg (disco: {:.3f})'.format(dccoeff)
+                ax.scatter(cvar_bkg, scores_bkg,
+                  color='dodgerblue', label=label, alpha=0.5, s=1)
+                ax.set_xlabel('Mass (GeV)', fontsize=12)
+                ax.set_ylabel('Classifier output score', fontsize=12)
+                ax.set_title(f'Correlation between {cvarname} and classifier output score', fontsize=12)
+                leg = ax.legend(fontsize=12)
+                for lh in leg.legend_handles:
+                    lh.set_alpha(1)
+                    lh._sizes = [30]
+                fig.savefig(os.path.join(args.outputdir, f'correlation_{cvarname}.png'))
