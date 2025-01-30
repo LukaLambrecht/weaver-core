@@ -337,7 +337,7 @@ class SimpleIterDataset(torch.utils.data.IterableDataset):
                 _logger.info('Found file %s w/ auto-generated preprocessing information, will use that instead!' %
                              data_config_file)
 
-        # load data config (w/ observers now -- so they will be included in the auto-generated yaml)
+        # load data config (with observers now -- so they will be included in the auto-generated yaml)
         self._data_config = DataConfig.load(data_config_file)
 
         if for_training:
@@ -352,7 +352,7 @@ class SimpleIterDataset(torch.utils.data.IterableDataset):
                     w = WeightMaker(file_dict, self._data_config)
                     self._data_config = w.produce(data_config_autogen_file)
 
-            # reload data_config w/o observers for training
+            # reload data_config without observers for training
             if os.path.exists(data_config_autogen_file) and data_config_file != data_config_autogen_file:
                 data_config_file = data_config_autogen_file
                 _logger.info(
@@ -372,9 +372,16 @@ class SimpleIterDataset(torch.utils.data.IterableDataset):
 
     def __iter__(self):
         if self._iters is None:
+            # this case happens when not in infinity mode and not in-memory. (?)
+            # make a new SimpleIter object with the same command line args
+            # as were used to make this SimpleIterDatasets object.
             kwargs = {k: copy.deepcopy(self.__dict__[k]) for k in self._init_args}
             return _SimpleIter(**kwargs)
         else:
+            # this case happens when in infinity mode or in-memory (?)
+            # retrieve and existing SimpleIter object by its worker ID.
+            # if not found, make a new SimpleIter object with the same command line args
+            # as were used to make this SimpleIterDatasets object.
             worker_info = torch.utils.data.get_worker_info()
             worker_id = worker_info.id if worker_info is not None else 0
             try:
