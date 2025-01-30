@@ -77,6 +77,10 @@ labels:
    ### [option 2] otherwise use `custom` to define the label, then `value` is a map
    #value: {isHHto4b_mH_100: 0, isHHto4b_mH_150: 1}
 
+observers:
+  - dHH_H1_regmass
+  - dHH_H2_regmass
+
 weights:
    ### [option 1] use precomputed weights stored in the input files
    # use_precomputed_weights: true

@@ -11,12 +11,9 @@ import tqdm
 import torch
 
 thisdir = os.path.abspath(os.path.dirname(__file__))
-sys.path.append(thisdir)
-from python.disco import distance_correlation
-
 weavercoredir = os.path.abspath(os.path.join(thisdir, '../..'))
 sys.path.append(weavercoredir)
-from weaver.utils.nn.tools import _flatten_preds
+from weaver.utils.disco import distance_correlation
 
 
 class DiscoNetwork(torch.nn.Module):
