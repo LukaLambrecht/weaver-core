@@ -67,6 +67,19 @@ inputs:
       vars:
          - dHH_H1_regmass
          - dHH_H2_regmass
+         - dHH_H1_H2_deltaEta
+         - dHH_H1_H2_deltaPhi
+         - dHH_H1_H2_deltaR
+         - dHH_H1b1_H1b2_deltaEta
+         - dHH_H1b1_H1b2_deltaPhi
+         - dHH_H1b1_H1b2_deltaR
+         - dHH_H2b1_H1b2_deltaEta
+         - dHH_H2b1_H2b2_deltaPhi
+         - dHH_H2b1_H2b2_deltaR
+         - dHH_H1_regpt
+         - dHH_H2_regpt
+         - dHH_HH_regmass
+         - dHH_HH_regpt
 
    decorrelate:
       # define variable to decorrelate output from.

@@ -16,6 +16,8 @@ class Network(torch.nn.Module):
     def __init__(self, n_inputs,
         num_classes=2, architecture=[8], **kwargs):
         super().__init__(**kwargs)
+
+        # initializations
         self.n_inputs = n_inputs
         self.num_classes = num_classes
         self.architecture = architecture

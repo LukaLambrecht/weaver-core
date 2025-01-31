@@ -7,6 +7,7 @@
 
 import os
 import sys
+import json
 import tqdm
 import torch
 
@@ -14,6 +15,7 @@ thisdir = os.path.abspath(os.path.dirname(__file__))
 weavercoredir = os.path.abspath(os.path.join(thisdir, '../..'))
 sys.path.append(weavercoredir)
 from weaver.utils.disco import distance_correlation
+from weaver.utils.nn.tools import _flatten_preds
 
 
 class DiscoNetwork(torch.nn.Module):
@@ -21,16 +23,17 @@ class DiscoNetwork(torch.nn.Module):
     def __init__(self, n_inputs,
                  architecture=[8],
                  num_classes=2,
+                 disco_index=0,
                  disco_alpha=0,
-                 disco_power=1):
-        super().__init__()
-
-        if num_classes != 2:
-            raise NotImplementedError()
+                 disco_power=1,
+                 **kwargs):
+        super().__init__(**kwargs)
 
         # initializations
+        self.n_inputs = n_inputs
         self.architecture = architecture
         self.num_classes = num_classes
+        self.disco_index = disco_index
         self.disco_alpha = disco_alpha
         self.disco_power = disco_power
 
@@ -49,9 +52,8 @@ class DiscoNetwork(torch.nn.Module):
         layers.append( torch.nn.Softmax(dim=1) )
         self.model = torch.nn.Sequential(*layers)
 
-        # loss function and optimizer 
-        self.bcelossfunction = torch.nn.BCELoss()
-        self.optimizer = torch.optim.Adam(self.model.parameters())
+        # loss function 
+        self.celossfunction = torch.nn.CrossEntropyLoss()
         
     def forward(self, X, _):
         # do forward pass
@@ -71,14 +73,32 @@ class DiscoNetwork(torch.nn.Module):
     
     def loss(self, predictions, labels, mass):
         # custom loss function.
-        # loss = binary cross-entropy + alpha * distance correlation
-        bceloss = self.bcelossfunction(predictions, labels)
-        discoloss = distance_correlation(predictions, mass, power=self.disco_power)
-        totalloss = bceloss + self.disco_alpha * discoloss
-        return (totalloss, {'BCE': bceloss.item(), 'DisCo': discoloss.item()})
+        # loss = cross-entropy + alpha * distance correlation
+
+        # calculate cross-entropy loss
+        predictions_flat, labels_flat, _ = _flatten_preds(predictions, label=labels)
+        celoss = self.celossfunction(predictions_flat, labels_flat)
+
+        # calculate distance correlation
+        # note: can only take one dimension in the prediction!
+        predictions_column = predictions[:, self.disco_index]
+        discoloss = distance_correlation(predictions_column, mass, power=self.disco_power)
+
+        # make the sum
+        totalloss = celoss + self.disco_alpha * discoloss
+        return (totalloss, {'BCE': celoss.item(), 'DisCo': discoloss.item()})
 
     def train_single_epoch(self, train_loader, dev, **kwargs):
         # custom training loop (for one epoch).
+
+        # get optimizer and scheduler from keyword arguments
+        # (optional according to the syntax, but in practice always provided)
+        optimizer = kwargs['optimizer']
+        scheduler = kwargs['scheduler']
+
+        # get optional keyword arguments
+        grad_scaler = None
+        if 'grad_scaler' in kwargs.keys(): grad_scaler = kwargs['grad_scaler']
     
         # set model ready for training
         self.model.train()
@@ -109,25 +129,29 @@ class DiscoNetwork(torch.nn.Module):
                     msg += ' "decorrelate" for the decorrelation variable.'
                     raise Exception(msg)
                 mass = X['decorrelate'].to(dev).squeeze()
-                labels = y[data_config.label_names[0]].float().to(dev)
+                labels = y[data_config.label_names[0]].long().to(dev)
+                # (note: conversion to long seems to be needed for CrossEntropyLoss,
+                #  while for BCELoss, conversion to float seems to be required)
 
                 # reset optimizer
-                self.optimizer.zero_grad()
+                optimizer.zero_grad()
 
                 # forward pass
                 predictions = self.forward(*inputs, None)
-
-                # take only first dimension in the prediction,
-                # assuming that is for signal
-                # (todo: find cleaner way)
-                predictions = predictions[:, 0]
 
                 # calculate loss
                 loss, lossvalues = self.loss(predictions, labels, mass)
 
                 # backpropagation
-                loss.backward()
-                self.optimizer.step()
+                if grad_scaler is None:
+                    loss.backward()
+                    optimizer.step()
+                else:
+                    grad_scaler.scale(loss).backward()
+                    grad_scaler.step(optimizer)
+                    grad_scaler.update()
+                if scheduler and getattr(scheduler, '_update_per_step', False):
+                    scheduler.step()
 
                 # print total loss
                 loss = loss.item()
@@ -145,20 +169,31 @@ class DiscoNetwork(torch.nn.Module):
                     steps_per_epoch = kwargs['steps_per_epoch']
                     if batch_idx >= steps_per_epoch: break
 
+        # update scheduler (if it was not done per batch)
+        if scheduler and not getattr(scheduler, '_update_per_step', False): scheduler.step()
 
-def get_model(data_config, **kwargs):
+
+def get_model(data_config, architecture=[8], 
+      disco_index=0, disco_alpha=0, disco_power=1, 
+      **kwargs):
     # settings
+    print('Info from get_model:')
+    print('  Will instantiate a DiscoNetwork model.')
     _, n_features, feature_length = data_config.input_shapes['input_features']
-    print(f'Found {n_features} features each with length {feature_length}.')
+    print(f'  Found {n_features} features each with length {feature_length}.')
     n_inputs = n_features * feature_length
-    print(f'Flattened input dimension: {n_inputs}.')
+    print(f'  Flattened input dimension: {n_inputs}.')
     num_classes = len(data_config.label_value)
-    print(f'Found {num_classes} output classes.')
-    architecture = [4, 4]
-    disco_alpha = 0
-    disco_power = 1
+    print(f'  Found {num_classes} output classes.')
+    if isinstance(architecture, str):
+        architecture = json.loads(architecture)
+    print(f'  Found following architecture: {architecture}')
+    print('  Found following DisCo parameters:')
+    print(f'  disco_index: {disco_index}')
+    print(f'  disco_alpha: {disco_alpha}')
+    print(f'  disco_power: {disco_power}')
     model = DiscoNetwork(n_inputs, architecture=architecture,
-              disco_alpha=disco_alpha, disco_power=disco_power)
+              disco_index=disco_index, disco_alpha=disco_alpha, disco_power=disco_power)
     # model info
     model_info = {
       'input_names': list(data_config.input_names),
