@@ -10,7 +10,7 @@ if __name__=='__main__':
     args = sys.argv[1:]
 
     # conda environment settings
-    conda_activate = 'cd /eos/user/l/llambrec; source miniforge3/bin/activate'
+    conda_activate = 'source /eos/user/l/llambrec/miniforge3/bin/activate'
     conda_env = 'weaver'
 
     # make the full weaver command

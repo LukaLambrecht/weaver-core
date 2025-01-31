@@ -166,7 +166,7 @@ if __name__=='__main__':
                 cvar = events[cvarname][mask]
                 cscores = scores[mask]
                 fig, ax = plt.subplots()
-                label = 'Bkg (disco: {:.3f})'.format(dccoeff)
+                label = 'Bkg (disco: {:.3f})'.format(dccoeffs[cvarname])
                 ax.scatter(cvar, cscores,
                   color='dodgerblue', label=label, alpha=0.5, s=1)
                 ax.set_xlabel('Mass (GeV)', fontsize=12)
