@@ -67,8 +67,11 @@ parser.add_argument('--tensorboard-custom-fn', type=str, default=None,
                          'to display custom information per mini-batch or per epoch, during the training, validation or test.')
 parser.add_argument('-n', '--network-config', type=str,
                     help='network architecture configuration file; the path must be relative to the current dir')
-parser.add_argument('-o', '--network-option', nargs=2, action='append', default=[],
-                    help='options to pass to the model class constructor, e.g., `--network-option use_counts False`')
+parser.add_argument('-o', '--network-kwargs', nargs='*', default=[],
+                    help='keyword arguments (kwargs) to pass to the "get_model" function'
+                        +' (e.g., `--network-option use_counts False`.'
+                        +' Note that the provided elements on the command line will be grouped per two,'
+                        +' assumed to represent key-value pairs.')
 parser.add_argument('-m', '--model-prefix', type=str, default='models/{auto}/network',
                     help='path to save or load the model; for training, this will be used as a prefix, so model snapshots '
                          'will saved to `{model_prefix}_epoch-%%d_state.pt` after each epoch, and the one with the best '
@@ -590,13 +593,22 @@ def model_setup(args, data_config, device='cpu'):
     network_module = import_module(args.network_config, name='_network_module')
 
     # read network options from the command line
-    network_options = {k: ast.literal_eval(v) for k, v in args.network_option}
-    _logger.info('Network options: %s' % str(network_options))
-    if args.export_onnx: network_options['for_inference'] = True
-    if args.use_amp: network_options['use_amp'] = True
+    network_kwargs = {}
+    if len(args.network_kwargs) % 2 != 0:
+        msg = 'Found an odd number of arguments for --network-kwargs: {}.'.format(args.network_kwargs)
+        msg += ' Only even numbers (key-value pairs) are supported for now.'
+        raise Exception(msg)
+    for idx in range(0, len(args.network_kwargs), 2):
+        key = args.network_kwargs[idx]
+        value = args.network_kwargs[idx+1]
+        value = ast.literal_eval(value)
+        network_kwargs[key] = value
+    _logger.info('Network options: %s' % str(network_kwargs))
+    if args.export_onnx: network_kwargs['for_inference'] = True
+    if args.use_amp: network_kwargs['use_amp'] = True
 
     # get the network from the provided module
-    model, model_info = network_module.get_model(data_config, **network_options)
+    model, model_info = network_module.get_model(data_config, **network_kwargs)
 
     # load previously stored model weights
     if args.load_model_weights:
@@ -636,8 +648,8 @@ def model_setup(args, data_config, device='cpu'):
 
     # set loss function
     try:
-        loss_func = network_module.get_loss(data_config, **network_options)
-        _logger.info('Using loss function %s with options %s' % (loss_func, network_options))
+        loss_func = network_module.get_loss(data_config, **network_kwargs)
+        _logger.info('Using loss function %s with options %s' % (loss_func, network_kwargs))
     except AttributeError:
         loss_func = torch.nn.CrossEntropyLoss()
         _logger.warning('Loss function not defined in %s.'
@@ -1011,8 +1023,8 @@ def main():
         import hashlib
         import time
         model_name = time.strftime('%Y%m%d-%H%M%S') + "_" + os.path.basename(args.network_config).replace('.py', '')
-        if len(args.network_option):
-            model_name = model_name + "_" + hashlib.md5(str(args.network_option).encode('utf-8')).hexdigest()
+        if len(args.network_kwargs):
+            model_name = model_name + "_" + hashlib.md5(str(args.network_kwargs).encode('utf-8')).hexdigest()
         model_name += '_{optim}_lr{lr}_batch{batch}'.format(lr=args.start_lr,
                                                             optim=args.optimizer, batch=args.batch_size)
         args._auto_model_name = model_name
