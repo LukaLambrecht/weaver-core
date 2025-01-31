@@ -14,6 +14,69 @@ sys.path.append(topdir)
 from weaver.utils.disco import distance_correlation
 
 
+def get_scores_from_events(events, signal_mask):
+    ### get scores from an events array
+
+    # format the scores
+    scores = events['score_'+signal_mask]
+    labels = np.where(events[signal_mask]==1, 1, 0)
+    scores_sig = scores[labels==1]
+    scores_bkg = scores[labels==0]
+
+    # return the result
+    return (scores, labels, scores_sig, scores_bkg)
+
+
+def get_discos_from_events(events, scores, correlations, npoints=1000, mask=None):
+    ### get distance correlation coefficients from events
+
+    # mask scores if requested
+    if mask is not None:
+        mask = mask.astype(bool)
+        scores = scores[mask]
+
+    # initialize indices for random selection of points
+    # (to avoid excessive memory usage)
+    randinds = None
+    if npoints > 0 and len(scores) > npoints:
+        randinds = np.random.choice(np.arange(len(scores)), size=npoints, replace=False)
+        scores = scores[randinds]
+
+    # loop over correlation variables
+    dccoeffs = {}
+    for varname in correlations:
+
+        # get variable
+        var = events[varname]
+        if mask is not None: var = var[mask]
+        if randinds is not None: var = var[randinds]
+
+        # calculate distance correlation
+        dccoeff = distance_correlation(var, scores)
+        dccoeffs[varname] = dccoeff
+
+    return dccoeffs
+
+
+def get_events_from_file(rootfile, signal_mask, correlations=None, treename=None):
+    ### get scores and auxiliary variables from a root file
+
+    # open input file
+    fopen = rootfile
+    if treename is not None: fopen += f':{treename}'
+    events = uproot.open(fopen)
+
+    # read branches as dict of arrays
+    score_branches = [b for b in events.keys() if b.startswith('score_')]
+    mask_branches = [signal_mask]
+    correlation_branches = correlations if correlations is not None else []
+    branches_to_read = score_branches + mask_branches + correlation_branches
+    events = events.arrays(branches_to_read, library='np')
+
+    # return the events array
+    return events
+
+
 if __name__=='__main__':
 
     # read command line args
@@ -28,22 +91,10 @@ if __name__=='__main__':
     parser.add_argument('--plot_correlation', default=False, action='store_true')
     args = parser.parse_args()
 
-    # open input file
-    fopen = args.inputfile
-    if args.treename is not None: fopen += f':{args.treename}'
-    events = uproot.open(fopen)
-
-    # read branches as dict of arrays
-    score_branches = [b for b in events.keys() if b.startswith('score_')]
-    mask_branches = [args.signal_mask] #+ [args.background_mask]
-    branches_to_read = score_branches + mask_branches + args.correlations
-    events = events.arrays(branches_to_read, library='np')
-
-    # format the scores
-    scores = events['score_'+args.signal_mask]
-    labels = np.where(events[args.signal_mask]==1, 1, 0)
-    scores_sig = scores[labels==1]
-    scores_bkg = scores[labels==0]
+    # read events and scores from input file
+    events = get_events_from_file(args.inputfile, args.signal_mask,
+               correlations=args.correlations, treename=args.treename)
+    (scores, labels, scores_sig, scores_bkg) = get_scores_from_events(events, args.signal_mask)
 
     # make output directory
     if args.outputdir is not None:
@@ -99,24 +150,24 @@ if __name__=='__main__':
 
     # calculate and plot correlations
     if len(args.correlations)>0:
+
+        # calculate distance correlations
+        mask = (labels == 0) # only for background events
+        dccoeffs = get_discos_from_events(events, scores, args.correlations, npoints=1000, mask=mask)
+
+        # loop over variables
         for cvarname in args.correlations:
-
-            # get variable
-            cvar = events[cvarname]
-            cvar_sig = cvar[labels==1]
-            cvar_bkg = cvar[labels==0]
-
-            # calculate correlation coefficient
-            limit = 1000 # cannot calculate the distance correlation on the full set, too much memory
-            randinds = np.random.choice(np.arange(len(cvar_bkg)), size=limit, replace=False)
-            dccoeff = distance_correlation(cvar_bkg[randinds], scores_bkg[randinds])
-            print('Distance correlation coefficient: {:.5f}'.format(dccoeff))
+            msg = f'Distance correlation coefficient between scores and {cvarname}:'
+            msg += ' {:.5f}'.format(dccoeffs[cvarname])
+            print(msg)
 
             # make a plot of the correlation
             if args.plot_correlation:
+                cvar = events[cvarname][mask]
+                cscores = scores[mask]
                 fig, ax = plt.subplots()
                 label = 'Bkg (disco: {:.3f})'.format(dccoeff)
-                ax.scatter(cvar_bkg, scores_bkg,
+                ax.scatter(cvar, cscores,
                   color='dodgerblue', label=label, alpha=0.5, s=1)
                 ax.set_xlabel('Mass (GeV)', fontsize=12)
                 ax.set_ylabel('Classifier output score', fontsize=12)
