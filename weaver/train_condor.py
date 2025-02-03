@@ -1,7 +1,7 @@
 import os
 import sys
 
-import weaver.utils.condortools as ct
+import weaver.utils.jobsubmission.condortools as ct
 
 
 if __name__=='__main__':

@@ -6,7 +6,7 @@ import numpy as np
 thisdir = os.path.abspath(os.path.dirname(__file__))
 weavercoredir = os.path.abspath(os.path.join(thisdir, '../../../'))
 sys.path.append(weavercoredir)
-import weaver.utils.condortools as ct
+import weaver.utils.jobsubmission.condortools as ct
 
 
 if __name__=='__main__':
