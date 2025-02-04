@@ -39,7 +39,7 @@ parser.add_argument('-t', '--data-test', nargs='*', default=[],
                     help='testing files; supported syntax:'
                          ' (a) plain list, `--data-test /path/to/a/* /path/to/b/*`;'
                          ' (b) keyword-based, `--data-test a:/path/to/a/* b:/path/to/b/*`, will produce output_a, output_b;'
-                         ' (c) split output per N input files, `--data-test a%%10:/path/to/a/*`, will split per 10 input files')
+                         ' (c) split output per N input files, `--data-test a%10:/path/to/a/*`, will split per 10 input files')
 parser.add_argument('--data-fraction', type=float, default=1,
                     help='fraction of events to load from each file; for training, the events are randomly selected for each epoch')
 parser.add_argument('--file-fraction', type=float, default=1,
@@ -147,30 +147,37 @@ parser.add_argument('--cross-validation', type=str, default=None,
                     help='enable k-fold cross validation; input format: `variable_name%%k`')
 
 
-def to_filelist(args, mode='train'):
+def parse_file_patterns(file_patterns, local_rank=None, copy_inputs=False):
     """
     Get a valid file list from command line arguments
     Input arguments:
-     - full set of provided command line args.
-     - mode: either 'train' or 'val'.
+     - file_patterns: list of strings representing file patterns (potentially with wildcards).
+       note: the file patterns may contain a ":" character as follows: <name>:<pattern>.
+             the names provided in this way are the keys of the returned dict
+             (the default name for patterns that do not have this structure is "_").
+       note: named file patterns may additionally contain a '%' character as follows: <name>%<split>:<pattern>.
+             in this case, the files will be split in groups of <split> (integer).
+             this is not supported for training/validation data, only for testing data!
+     - local_rank: ?
+     - copy_inputs: bool whether to copy the files to a local area.
     Returns:
-     - file dict matching input patterns on the command line to corresponding files.
+     - file dict matching names (default name: "_") to corresponding files.
      - flat list of all files.
     """
 
-    # check mode
-    if mode == 'train': flist = args.data_train
-    elif mode == 'val': flist = args.data_val
-    else: raise NotImplementedError('Invalid mode %s' % mode)
-
-    # make a dict matching provided patterns to lists of corresponding files
-    # (keyword-based: 'a:/path/to/a b:/path/to/b')
+    # make a dict matching names to lists of corresponding files
+    # (files for which no name is provided on )
     file_dict = {}
-    for f in flist:
-        if ':' in f: name, fp = f.split(':')
-        else: name, fp = '_', f
+    split_dict = {}
+    for file_pattern in file_patterns:
+        if ':' in file_pattern:
+            name, file_pattern = file_pattern.split(':')
+            if '%' in name:
+                name, split = name.split('%')
+                split_dict[name] = int(split)
+        else: name = '_'
         # find all files corresponding to pattern
-        files = glob.glob(fp)
+        files = glob.glob(file_pattern)
         # append to dict
         if name in file_dict: file_dict[name] += files
         else: file_dict[name] = files
@@ -179,25 +186,31 @@ def to_filelist(args, mode='train'):
     for name, files in file_dict.items():
         file_dict[name] = sorted(files)
 
-    # modify file dict for training based on local_rank
+    # apply splitting
+    for name, split in split_dict.items():
+        files = file_dict.pop(name)
+        for i in range((len(files) + split - 1) // split):
+            file_dict[f'{name}_{i}'] = files[i * split:(i + 1) * split]
+
+    # modify file dict based on local_rank
     # (what is this? probably irrelevant for now)
-    if args.local_rank is not None:
-        if mode == 'train':
-            local_world_size = int(os.environ['LOCAL_WORLD_SIZE'])
-            new_file_dict = {}
-            for name, files in file_dict.items():
-                new_files = files[args.local_rank::local_world_size]
-                assert(len(new_files) > 0)
-                np.random.shuffle(new_files)
-                new_file_dict[name] = new_files
-            file_dict = new_file_dict
+    if local_rank is not None:
+        local_world_size = int(os.environ['LOCAL_WORLD_SIZE'])
+        new_file_dict = {}
+        for name, files in file_dict.items():
+            new_files = files[args.local_rank::local_world_size]
+            assert(len(new_files) > 0)
+            np.random.shuffle(new_files)
+            new_file_dict[name] = new_files
+        file_dict = new_file_dict
 
     # copy all input files to a temporary local directory
-    if args.copy_inputs:
+    if copy_inputs:
+        # define a temporary directory
         import tempfile
         tmpdir = tempfile.mkdtemp()
-        if os.path.exists(tmpdir):
-            shutil.rmtree(tmpdir)
+        if os.path.exists(tmpdir): shutil.rmtree(tmpdir)
+        # copy all files
         new_file_dict = {name: [] for name in file_dict}
         for name, files in file_dict.items():
             for src in files:
@@ -208,16 +221,16 @@ def to_filelist(args, mode='train'):
                 _logger.info('Copied file %s to %s' % (src, dest))
                 new_file_dict[name].append(dest)
             if len(files) != len(new_file_dict[name]):
-                _logger.error('Only %d/%d files copied for %s file group %s',
-                              len(new_file_dict[name]), len(files), mode, name)
+                _logger.error('Only %d/%d files copied for group %s',
+                              len(new_file_dict[name]), len(files), name)
         file_dict = new_file_dict
 
     # check that all files are unique
-    filelist = sum(file_dict.values(), [])
-    assert(len(filelist) == len(set(filelist)))
+    file_list = sum(file_dict.values(), [])
+    assert(len(file_list) == len(set(file_list)))
 
     # return dict and list of files
-    return file_dict, filelist
+    return file_dict, file_list
 
 
 def train_load(args):
@@ -227,17 +240,40 @@ def train_load(args):
      - full set of command line args
     """
 
-    # get files for training data
-    train_file_dict, train_files = to_filelist(args, 'train')
+    # check if args.data_train was provided on the command line
+    if args.data_train is None:
+        # this should not normally happen as this function is only called in training mode,
+        # but add an explicit check anyway.
+        raise Exception('Something went wrong: train_load(args) was called while args.data_train is None.')
 
-    # get files for validation data
-    if args.data_val:
-        val_file_dict, val_files = to_filelist(args, 'val')
-        train_range = val_range = (0, 1)
+    # get the files for training data in the case of a provided sample list
+    if len(args.data_train)==1 and args.data_train[0].endswith('.json'):
+        # todo
+        raise Exception('Not yet implemented.')
+
+    # get the files for training data in the case of a provided list of files
     else:
+        train_file_dict, train_files = parse_file_patterns(args.data_train,
+                copy_files=args.copy_files, local_rank=args.local_rank)
+
+    # check if args.data_val was provided on the command line
+    if args.data_val is None:
+        # use a fraction of the training data for validation
         val_file_dict, val_files = train_file_dict, train_files
         train_range = (0, args.train_val_split)
         val_range = (args.train_val_split, 1)
+    else:
+        # get the files for validation data in the case of a provided sample list
+        if len(args.data_val)==1 and args.data_val[0].endswith('.json'):
+            # todo
+            raise Exception('Not yet implemented.')
+        # get the files for validation data in the case of a provided list of files
+        else:
+            val_file_dict, val_files = parse_file_patterns(args.data_val,
+                    copy_files=args.copy_files, local_rank=None)
+            train_range = val_range = (0, 1)
+
+    # print number of files for debugging
     _logger.info('Using %d files for training, range: %s' % (len(train_files), str(train_range)))
     _logger.info('Using %d files for validation, range: %s' % (len(val_files), str(val_range)))
 
@@ -304,37 +340,24 @@ def test_load(args):
      - full set of command line args
     """
 
-    # make a dict mapping provided patterns to corresponding files
-    # (keyword-based --data-test: 'a:/path/to/a b:/path/to/b')
-    # (split --data-test: 'a%10:/path/to/a/*' (?))
-    file_dict = {}
-    split_dict = {}
-    for f in args.data_test:
-        if ':' in f:
-            name, fp = f.split(':')
-            if '%' in name:
-                name, split = name.split('%')
-                split_dict[name] = int(split)
-        else:
-            name, fp = '', f
-        files = glob.glob(fp)
-        if name in file_dict:
-            file_dict[name] += files
-        else:
-            file_dict[name] = files
+    # check if args.data_test was provided on the command line
+    if args.data_test is None:
+        # this should not normally happen as this function is only called in testing mode,
+        # but add an explicit check anyway.
+        raise Exception('Something went wrong: test_load(args) was called while args.data_test is None.')
 
-    # sort files
-    for name, files in file_dict.items():
-        file_dict[name] = sorted(files)
+    # get the files for testing data in the case of a provided sample list
+    if len(args.data_test)==1 and args.data_test[0].endswith('.json'):
+        # todo
+        raise Exception('Not yet implemented.')
 
-    # apply splitting
-    for name, split in split_dict.items():
-        files = file_dict.pop(name)
-        for i in range((len(files) + split - 1) // split):
-            file_dict[f'{name}_{i}'] = files[i * split:(i + 1) * split]
+    # get the files for testing data in the case of a provided list of files
+    else:
+        test_file_dict, test_files = parse_file_patterns(args.data_test,
+                copy_files=args.copy_files, local_rank=None)
 
     def get_test_loader(name):
-        filelist = file_dict[name]
+        filelist = test_file_dict[name]
         _logger.info('Running on test file group %s with %d files:\n...%s', name, len(filelist), '\n...'.join(filelist))
         num_workers = min(args.num_workers, len(filelist))
         test_data = SimpleIterDataset({name: filelist}, args.data_config, for_training=False,
@@ -346,7 +369,7 @@ def test_load(args):
                         drop_last=False, pin_memory=True)
         return test_loader
 
-    test_loaders = {name: functools.partial(get_test_loader, name) for name in file_dict}
+    test_loaders = {name: functools.partial(get_test_loader, name) for name in test_file_dict}
     data_config = SimpleIterDataset({}, args.data_config, for_training=False).config
     return test_loaders, data_config
 
