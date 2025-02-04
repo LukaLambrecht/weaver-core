@@ -72,3 +72,34 @@ def submitCommandsAsSlurmJob(cmds, script, env_cmds=None, **kwargs):
     writeSlurmScript(cmds, script, **kwargs)
     # submit job
     os.system(f'sbatch {script}')
+
+
+def submitCommandsAsSlurmJobs(cmds, script, env_cmds, **kwargs):
+    """
+    Submit a list of commands as parallel slurm jobs.
+    Input arguments:
+    - cmds: a list of commands to execute in parallel.
+    - script: name of the submission script to create.
+    - env_cmds: list of commands to set up the environment (e.g. cmsenv or conda).
+    - kwargs: passed down to writeSlurmScript
+    """
+    # parse commands and environment commands
+    if isinstance(cmds, str): cmds = [cmds]
+    if env_cmds is not None:
+        if isinstance(env_cmds, str): env_cmds = [env_cmds]
+    # find original job name (modify in loop with index)
+    job_name = None
+    if 'job_name' in kwargs.keys(): job_name = kwargs.pop('job_name')
+    # loop over commands
+    for idx, cmd in enumerate(cmds):
+        print('Preparing job {}/{}...'.format(idx+1, len(cmds)))
+        # put index in script name
+        thisscript = os.path.splitext(script)[0] + f'_{idx}.sh'
+        thisjn = None
+        if job_name is not None: thisjn = job_name + f'_{idx}'
+        # merge environment commands with this command
+        thiscmds = env_cmds + [cmd]
+        # write script
+        writeSlurmScript(thiscmds, thisscript, job_name=thisjn, **kwargs)
+        # submit job
+        os.system(f'sbatch {thisscript}')
