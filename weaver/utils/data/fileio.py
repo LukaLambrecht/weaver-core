@@ -20,23 +20,41 @@ def _read_hdf5(filepath, branches, load_range=None):
     return ak.Array(outputs)
 
 
-def _read_root(filepath, branches, load_range=None, treename=None, branch_magic=None):
+def _read_root(filepath, branches,
+        load_range=None, max_entries=None,
+        treename=None, branch_magic=None,
+        return_load_range=False):
     import uproot
     with uproot.open(filepath) as f:
+
+        # find the correct tree
+        # (automatic if only one tree is present in the file,
+        # else need to provide treename as argument)
         if treename is None:
-            treenames = set([k.split(';')[0] for k, v in f.items() if getattr(v, 'classname', '') == 'TTree'])
+            treenames = set([k.split(';')[0] for k, v in f.items()
+              if getattr(v, 'classname', '') == 'TTree'])
             if len(treenames) == 1:
                 treename = treenames.pop()
             else:
-                raise RuntimeError(
-                    'Need to specify `treename` as more than one trees are found in file %s: %s' %
-                    (filepath, str(treenames)))
+                msg = 'Need to specify `treename`, as more than one trees'
+                msg += ' are found in file %s: %s' % (filepath, str(treenames))
+                raise RuntimeError(msg)
         tree = f[treename]
+
+        # determine number of entries to read
+        start, stop = None, None
         if load_range is not None:
+            # convert fractional load range in number of entries
             start = math.trunc(load_range[0] * tree.num_entries)
             stop = max(start + 1, math.trunc(load_range[1] * tree.num_entries))
-        else:
-            start, stop = None, None
+        if max_entries is not None:
+            if max_entries < tree.num_entries:
+                # note: this might overwrite the settings from load_range
+                start = 0
+                stop = max_entries
+                load_range = (start, float(stop)/float(tree.num_entries))
+
+        # do branch magic (what is this?)
         if branch_magic is not None:
             branch_dict = {}
             for name in branches:
@@ -45,13 +63,22 @@ def _read_root(filepath, branches, load_range=None, treename=None, branch_magic=
                     if src in decoded_name:
                         decoded_name = decoded_name.replace(src, tgt)
                 branch_dict[name] = decoded_name
-            outputs = tree.arrays(filter_name=list(branch_dict.values()), entry_start=start, entry_stop=stop)
+            # read the entries as arrays
+            outputs = tree.arrays(filter_name=list(branch_dict.values()),
+                        entry_start=start, entry_stop=stop)
+            # replace names
             for name, decoded_name in branch_dict.items():
                 if name != decoded_name:
                     outputs[name] = outputs[decoded_name]
+
+        # default case
         else:
-            outputs = tree.arrays(filter_name=branches, entry_start=start, entry_stop=stop)
-    return outputs
+            # read the entries as arrays
+            outputs = tree.arrays(filter_name=branches,
+                        entry_start=start, entry_stop=stop)
+
+    if return_load_range: return (outputs, load_range)
+    else: return outputs
 
 
 def _read_awkd(filepath, branches, load_range=None):
@@ -76,7 +103,8 @@ def _read_parquet(filepath, branches, load_range=None):
     return outputs
 
 
-def _read_files(filelist, branches, load_range=None, show_progressbar=False, file_magic=None, **kwargs):
+def _read_files(filelist, branches,
+        load_range=None, show_progressbar=False, file_magic=None, **kwargs):
     import os
     branches = list(branches)
     table = []

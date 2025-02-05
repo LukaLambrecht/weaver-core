@@ -190,19 +190,31 @@ class WeightMaker(object):
         _logger.debug('[WeightMaker] aux_branches:\n  %s', ','.join(aux_branches))
         _logger.debug('[WeightMaker] load_branches:\n  %s', ','.join(load_branches))
 
+        # set fractional range of events to load
+        load_range = None # (default: read all events in each file)
+        if( hasattr(self._data_config, 'reweight_load_fraction')
+                and self._data_config.reweight_load_fraction < 1 ):
+            load_fraction = self._data_config.reweight_load_fraction
+            load_range = (0., load_fraction)
+            msg = f'Will use load range {load_range};'
+            msg += f' only a fraction of {load_fraction} of events'
+            msg += ' from each file will be read for calculating weights.'
+            _logger.info(msg)
+
         # read the files
         table = _read_files(filelist, load_branches, show_progressbar=True,
                             treename=self._data_config.treename,
                             branch_magic=self._data_config.branch_magic,
-                            file_magic=self._data_config.file_magic)
-        _logger.info('Done reading files.')
+                            file_magic=self._data_config.file_magic,
+                            load_range=load_range)
+        _logger.info(f'Done reading files, read {len(table)} events.')
         
         # other preprocessing (applying selection and building new variables)
         _logger.info('Preprocessing files for creating reweighting factors...')
         table = _apply_selection(table, self._data_config.selection, funcs=self._data_config.var_funcs)
         table = _build_new_variables(table, {k: v for k, v in self._data_config.var_funcs.items() if k in aux_branches})
         table = table[keep_branches]
-        _logger.info('Done preprocessing.')
+        _logger.info(f'Done preprocessing, selected {len(table)} events.')
         return table
 
     def make_weights(self, table):
@@ -240,8 +252,10 @@ class WeightMaker(object):
         if sum_evts != len(table):
             _logger.warning(
                 'Only %d (out of %d) events actually used in the reweighting. '
-                'Check consistency between `selection` and `reweight_classes` definition, or with the `reweight_vars` binnings '
-                '(under- and overflow bins are discarded by default, unless `reweight_discard_under_overflow` is set to `False` in the `weights` section).',
+                'Check consistency between `selection` and `reweight_classes` '
+                'definition, or with the `reweight_vars` binnings '
+                '(under- and overflow bins are discarded by default, '
+                'unless `reweight_discard_under_overflow` is set to `False` in the `weights` section).',
                 sum_evts, len(table))
             time.sleep(10)
 

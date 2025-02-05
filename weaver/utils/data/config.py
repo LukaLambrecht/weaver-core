@@ -131,6 +131,7 @@ class DataConfig(object):
                 if self.class_weights is None:
                     self.class_weights = np.ones(len(self.reweight_classes))
                 self.reweight_threshold = opts['weights'].get('reweight_threshold', 10)
+                self.reweight_load_fraction = opts['weights'].get('reweight_load_fraction', 1.)
                 self.reweight_discard_under_overflow = opts['weights'].get('reweight_discard_under_overflow', True)
                 self.reweight_hists = opts['weights'].get('reweight_hists', None)
                 if self.reweight_hists is not None:
