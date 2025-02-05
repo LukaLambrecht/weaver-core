@@ -107,11 +107,11 @@ class DiscoNetwork(torch.nn.Module):
         loss_value = 0
         batch_idx = 0
         data_config = train_loader.dataset.config
-    
+
         # loop over batches
         with tqdm.tqdm(train_loader) as tq:
             for X, y, _ in tq:
-                
+
                 # prepare input data and labels
                 # note: data_config.input_names is a list of names defined
                 #       in the 'inputs' section of the data config file.
