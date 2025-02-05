@@ -170,6 +170,7 @@ class WeightMaker(object):
         self._data_config = data_config.copy()
 
     def read_file(self, filelist):
+        _logger.info('Reading files for creating reweighting factors...')
         keep_branches = set(self._data_config.reweight_branches + self._data_config.reweight_classes)
         if self._data_config.reweight_basewgt:
             keep_branches.add(self._data_config.basewgt_name)
@@ -189,12 +190,19 @@ class WeightMaker(object):
         _logger.debug('[WeightMaker] aux_branches:\n  %s', ','.join(aux_branches))
         _logger.debug('[WeightMaker] load_branches:\n  %s', ','.join(load_branches))
 
+        # read the files
         table = _read_files(filelist, load_branches, show_progressbar=True,
                             treename=self._data_config.treename,
-                            branch_magic=self._data_config.branch_magic, file_magic=self._data_config.file_magic)
+                            branch_magic=self._data_config.branch_magic,
+                            file_magic=self._data_config.file_magic)
+        _logger.info('Done reading files.')
+        
+        # other preprocessing (applying selection and building new variables)
+        _logger.info('Preprocessing files for creating reweighting factors...')
         table = _apply_selection(table, self._data_config.selection, funcs=self._data_config.var_funcs)
         table = _build_new_variables(table, {k: v for k, v in self._data_config.var_funcs.items() if k in aux_branches})
         table = table[keep_branches]
+        _logger.info('Done preprocessing.')
         return table
 
     def make_weights(self, table):

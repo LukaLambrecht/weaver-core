@@ -347,10 +347,14 @@ class SimpleIterDataset(torch.utils.data.IterableDataset):
                 self._data_config = s.produce(data_config_autogen_file)
 
             # produce reweight info if needed
-            if self._sampler_options['reweight'] and self._data_config.weight_name and not self._data_config.use_precomputed_weights:
+            if( self._sampler_options['reweight']
+                    and self._data_config.weight_name
+                    and not self._data_config.use_precomputed_weights ):
                 if remake_weights or self._data_config.reweight_hists is None:
+                    _logger.info('Creating reweighting factors...')
                     w = WeightMaker(file_dict, self._data_config)
                     self._data_config = w.produce(data_config_autogen_file)
+                    _logger.info('Done creating weights.')
 
             # reload data_config without observers for training
             if os.path.exists(data_config_autogen_file) and data_config_file != data_config_autogen_file:
