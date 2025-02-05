@@ -12,7 +12,7 @@ import tqdm
 import torch
 
 thisdir = os.path.abspath(os.path.dirname(__file__))
-weavercoredir = os.path.abspath(os.path.join(thisdir, '../..'))
+weavercoredir = os.path.abspath(os.path.join(thisdir, '../../../'))
 sys.path.append(weavercoredir)
 from weaver.utils.disco import distance_correlation
 from weaver.utils.nn.tools import _flatten_preds

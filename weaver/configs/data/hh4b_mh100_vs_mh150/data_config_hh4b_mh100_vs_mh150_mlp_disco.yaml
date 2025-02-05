@@ -1,0 +1,79 @@
+#####################################
+# Data configuration for hh4b study #
+#####################################
+
+# Note: originally copied from here: /afs/cern.ch/work/g/gouskos/public/forLuka/hh4b_ParT.yaml
+# Note: this is a test version, with variables tailored to a simple feedforward MLP.
+# Note: contains several specific sections and conventions for the custom DisCo network.
+
+
+treename: Events
+
+selection:
+    # (no selections applied)
+
+test_time_selection:
+    # (no selections applied)
+
+file_magic:
+  # Match file names to custom sample index
+  sample:
+    HHto4b_mH_100_powheg_pythia8_Run3_.+\.root: 1
+    HHto4b_mH_150_powheg_pythia8_Run3_.+\.root: 2
+
+new_variables:
+    # Define new variables as a function of existing variables
+    isHHto4b_mH_100: sample==1
+    isHHto4b_mH_150: sample==2
+
+preprocess:
+   method: manual
+   data_fraction: 1
+
+inputs:
+   # Define input features to the network
+
+   input_features:
+      length: 1
+      vars:
+         - dHH_H1_regmass
+         - dHH_H2_regmass
+         - dHH_H1_H2_deltaEta
+         - dHH_H1_H2_deltaPhi
+         - dHH_H1_H2_deltaR
+         - dHH_H1b1_H1b2_deltaEta
+         - dHH_H1b1_H1b2_deltaPhi
+         - dHH_H1b1_H1b2_deltaR
+         - dHH_H2b1_H1b2_deltaEta
+         - dHH_H2b1_H2b2_deltaPhi
+         - dHH_H2b1_H2b2_deltaR
+         - dHH_H1_regpt
+         - dHH_H2_regpt
+         - dHH_HH_regmass
+         - dHH_HH_regpt
+
+   decorrelate:
+      # define variable to decorrelate output from.
+      # note: this only works in combination with the correct model config!
+      length: 1
+      vars:
+        - dHH_H1_regmass
+
+labels:
+   type: simple
+   value: [isHHto4b_mH_100, isHHto4b_mH_150]
+   # Note: the custom DisCo network is so far only implemented for binary classification,
+   # while the weaver framework inherently assumes multi-classification.
+   # Hence the list above must have exactly two elements,
+   # but only the first element will be considered the binary labels
+   # (with 1 for signal and 0 for background);
+   # the second element is needed for syntax but ignored in the custom training loop.
+
+observers:
+  # Make sure the decorrelated variable is used as observer,
+  # to make post-training conclusions.
+  - dHH_H1_regmass
+  - dHH_H2_regmass
+
+weights:
+   # (no weighting or resampling applied)
