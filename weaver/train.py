@@ -16,6 +16,7 @@ from torch.utils.data import DataLoader
 from weaver.utils.logger import _logger, _configLogger
 from weaver.utils.dataset import SimpleIterDataset
 from weaver.utils.import_tools import import_module
+from weaver.utils.samplelisttools import read_sample_list
 
 parser = argparse.ArgumentParser()
 parser.add_argument('--regression-mode', action='store_true', default=False,
@@ -154,7 +155,7 @@ def parse_file_patterns(file_patterns, local_rank=None, copy_inputs=False):
      - file_patterns: list of strings representing file patterns (potentially with wildcards).
        note: the file patterns may contain a ":" character as follows: <name>:<pattern>.
              the names provided in this way are the keys of the returned dict
-             (the default name for patterns that do not have this structure is "_").
+             (the default name for patterns that do not have this structure is "", i.e. empty string).
        note: named file patterns may additionally contain a '%' character as follows: <name>%<split>:<pattern>.
              in this case, the files will be split in groups of <split> (integer).
              this is not supported for training/validation data, only for testing data!
@@ -175,7 +176,7 @@ def parse_file_patterns(file_patterns, local_rank=None, copy_inputs=False):
             if '%' in name:
                 name, split = name.split('%')
                 split_dict[name] = int(split)
-        else: name = '_'
+        else: name = ''
         # find all files corresponding to pattern
         files = glob.glob(file_pattern)
         # append to dict
@@ -246,15 +247,15 @@ def train_load(args):
         # but add an explicit check anyway.
         raise Exception('Something went wrong: train_load(args) was called while no training data is provided.')
 
-    # get the files for training data in the case of a provided sample list
-    if len(args.data_train)==1 and args.data_train[0].endswith('.json'):
-        # todo
-        raise Exception('Not yet implemented.')
+    # get the file patterns for training data in the case of a provided sample list
+    if len(args.data_train)==1 and args.data_train[0].endswith('.yaml'):
+        samplelist = args.data_train[0]
+        _logger.info(f'Reading sample list {samplelist} for training data.')
+        args.data_train = read_sample_list(samplelist)
 
-    # get the files for training data in the case of a provided list of files
-    else:
-        train_file_dict, train_files = parse_file_patterns(args.data_train,
-                copy_inputs=args.copy_inputs, local_rank=args.local_rank)
+    # get the files for training data
+    train_file_dict, train_files = parse_file_patterns(args.data_train,
+        copy_inputs=args.copy_inputs, local_rank=args.local_rank)
 
     # check if args.data_val was provided on the command line
     if args.data_val is None or len(args.data_val)==0:
@@ -263,15 +264,15 @@ def train_load(args):
         train_range = (0, args.train_val_split)
         val_range = (args.train_val_split, 1)
     else:
-        # get the files for validation data in the case of a provided sample list
-        if len(args.data_val)==1 and args.data_val[0].endswith('.json'):
-            # todo
-            raise Exception('Not yet implemented.')
-        # get the files for validation data in the case of a provided list of files
-        else:
-            val_file_dict, val_files = parse_file_patterns(args.data_val,
-                    copy_inputs=args.copy_inputs, local_rank=None)
-            train_range = val_range = (0, 1)
+        # get the file patterns for validation data in the case of a provided sample list
+        if len(args.data_val)==1 and args.data_val[0].endswith('.yaml'):
+            samplelist = args.data_val[0]
+            _logger.info(f'Reading sample list {samplelist} for validation data.')
+            args.data_val = read_sample_list(samplelist)
+        # get the files for validation data
+        val_file_dict, val_files = parse_file_patterns(args.data_val,
+            copy_inputs=args.copy_inputs, local_rank=None)
+        train_range = val_range = (0, 1)
 
     # print number of files for debugging
     _logger.info('Using %d files for training, range: %s' % (len(train_files), str(train_range)))
@@ -346,15 +347,15 @@ def test_load(args):
         # but add an explicit check anyway.
         raise Exception('Something went wrong: test_load(args) was called while args.data_test is None.')
 
-    # get the files for testing data in the case of a provided sample list
-    if len(args.data_test)==1 and args.data_test[0].endswith('.json'):
-        # todo
-        raise Exception('Not yet implemented.')
+    # get the file patterns for testing data in the case of a provided sample list
+    if len(args.data_test)==1 and args.data_test[0].endswith('.yaml'):
+        samplelist = args.data_test[0]
+        _logger.info(f'Reading sample list {samplelist} for testing data')
+        args.data_test = read_sample_list(samplelist)
 
-    # get the files for testing data in the case of a provided list of files
-    else:
-        test_file_dict, test_files = parse_file_patterns(args.data_test,
-                copy_inputs=args.copy_inputs, local_rank=None)
+    # get the files for testing data
+    test_file_dict, test_files = parse_file_patterns(args.data_test,
+        copy_inputs=args.copy_inputs, local_rank=None)
 
     def get_test_loader(name):
         filelist = test_file_dict[name]
