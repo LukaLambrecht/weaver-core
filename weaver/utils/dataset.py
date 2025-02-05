@@ -97,7 +97,8 @@ def _preprocess(table, data_config, options):
     if options['reweight'] and data_config.weight_name is not None:
         wgts = _build_weights(table, data_config)
         indices = _get_reweight_indices(wgts, up_sample=options['up_sample'],
-                                        weight_scale=options['weight_scale'], max_resample=options['max_resample'])
+                                        weight_scale=options['weight_scale'],
+                                        max_resample=options['max_resample'])
     else:
         indices = np.arange(len(table[data_config.label_names[0]]))
     # shuffle
@@ -156,7 +157,8 @@ class _SimpleIter(object):
         self.restart()
 
     def restart(self):
-        print('=== Restarting DataIter %s, seed=%s ===' % (self._name, self._seed))
+        _logger.info('Restarting DataIter %s, seed=%s' % (self._name, self._seed))
+
         # re-shuffle filelist and load range if for training
         filelist = copy.deepcopy(self.worker_filelist)
         if self._sampler_options['shuffle']:
@@ -166,9 +168,9 @@ class _SimpleIter(object):
             filelist = filelist[:num_files]
         self.filelist = filelist
 
-        if self._init_load_range_and_fraction is None:
-            self.load_range = (0, 1)
-        else:
+        # set load range
+        self.load_range = (0, 1)
+        if self._init_load_range_and_fraction is not None:
             (start_pos, end_pos), load_frac = self._init_load_range_and_fraction
             interval = (end_pos - start_pos) * load_frac
             if self._sampler_options['shuffle']:
@@ -177,6 +179,7 @@ class _SimpleIter(object):
             else:
                 self.load_range = (start_pos, start_pos + interval)
 
+        # print some debugging info
         _logger.debug(
             'Init iter [%d], will load %d (out of %d*%s=%d) files with load_range=%s:\n%s', 0
             if self.worker_info is None else self.worker_info.id, len(self.filelist),
@@ -185,6 +188,7 @@ class _SimpleIter(object):
             str(self.load_range),
             '\n'.join(self.filelist[: 3]) + '\n ... ' + self.filelist[-1],)
 
+        # print info
         _logger.info('Restarted DataIter %s, load_range=%s, file_list:\n%s' %
                      (self._name, str(self.load_range), json.dumps(self.worker_file_dict, indent=2)))
 

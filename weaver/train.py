@@ -359,7 +359,8 @@ def test_load(args):
 
     def get_test_loader(name):
         filelist = test_file_dict[name]
-        _logger.info('Running on test file group %s with %d files:\n...%s', name, len(filelist), '\n...'.join(filelist))
+        _logger.info('Running on test file group %s with %d files:\n  - %s', name, len(filelist),
+                '\n  - '.join(filelist))
         num_workers = min(args.num_workers, len(filelist))
         test_data = SimpleIterDataset({name: filelist}, args.data_config, for_training=False,
                                       extra_selection=args.extra_test_selection,
