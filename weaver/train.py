@@ -39,7 +39,7 @@ parser.add_argument('-t', '--data-test', nargs='*', default=[],
                     help='testing files; supported syntax:'
                          ' (a) plain list, `--data-test /path/to/a/* /path/to/b/*`;'
                          ' (b) keyword-based, `--data-test a:/path/to/a/* b:/path/to/b/*`, will produce output_a, output_b;'
-                         ' (c) split output per N input files, `--data-test a%10:/path/to/a/*`, will split per 10 input files')
+                         ' (c) split output per N input files, `--data-test a%%10:/path/to/a/*`, will split per 10 input files')
 parser.add_argument('--data-fraction', type=float, default=1,
                     help='fraction of events to load from each file; for training, the events are randomly selected for each epoch')
 parser.add_argument('--file-fraction', type=float, default=1,
@@ -241,10 +241,10 @@ def train_load(args):
     """
 
     # check if args.data_train was provided on the command line
-    if args.data_train is None:
+    if args.data_train is None or len(args.data_train)==0:
         # this should not normally happen as this function is only called in training mode,
         # but add an explicit check anyway.
-        raise Exception('Something went wrong: train_load(args) was called while args.data_train is None.')
+        raise Exception('Something went wrong: train_load(args) was called while no training data is provided.')
 
     # get the files for training data in the case of a provided sample list
     if len(args.data_train)==1 and args.data_train[0].endswith('.json'):
@@ -254,10 +254,10 @@ def train_load(args):
     # get the files for training data in the case of a provided list of files
     else:
         train_file_dict, train_files = parse_file_patterns(args.data_train,
-                copy_files=args.copy_files, local_rank=args.local_rank)
+                copy_inputs=args.copy_inputs, local_rank=args.local_rank)
 
     # check if args.data_val was provided on the command line
-    if args.data_val is None:
+    if args.data_val is None or len(args.data_val)==0:
         # use a fraction of the training data for validation
         val_file_dict, val_files = train_file_dict, train_files
         train_range = (0, args.train_val_split)
@@ -270,7 +270,7 @@ def train_load(args):
         # get the files for validation data in the case of a provided list of files
         else:
             val_file_dict, val_files = parse_file_patterns(args.data_val,
-                    copy_files=args.copy_files, local_rank=None)
+                    copy_inputs=args.copy_inputs, local_rank=None)
             train_range = val_range = (0, 1)
 
     # print number of files for debugging
@@ -354,7 +354,7 @@ def test_load(args):
     # get the files for testing data in the case of a provided list of files
     else:
         test_file_dict, test_files = parse_file_patterns(args.data_test,
-                copy_files=args.copy_files, local_rank=None)
+                copy_inputs=args.copy_inputs, local_rank=None)
 
     def get_test_loader(name):
         filelist = test_file_dict[name]
@@ -776,15 +776,15 @@ def _main(args):
     _logger.info('Running weaver (train.py) with following arguments:')
     _logger.info('args:\n - %s', '\n - '.join(str(it) for it in args.__dict__.items()))
 
-    # export to ONNX (then exit)
+    # export to ONNX if requested (then exit)
     if args.export_onnx:
         onnx(args)
         return
 
     # handle deprecated file_fraction argument
     if args.file_fraction < 1:
-        _logger.warning('Use of `file-fraction` is not recommended in general'
-          +' -- prefer using `data-fraction` instead.')
+        _logger.warning('Use of `file-fraction` is not recommended in general;'
+          +' use `data-fraction` instead.')
 
     # set classification or regression mode
     if args.regression_mode:
@@ -798,6 +798,8 @@ def _main(args):
 
     # training/testing mode
     training_mode = not args.predict
+    if training_mode: _logger.info('Running in training mode')
+    else: _logger.info('Running in prediction mode')
 
     # set training (or inference) device
     if args.gpus:
@@ -823,9 +825,13 @@ def _main(args):
 
     # load data
     if training_mode:
+        _logger.info('Loading training data...')
         train_loader, val_loader, data_config, train_input_names, train_label_names = train_load(args)
+        _logger.info('Done loading training data.')
     else:
+        _logger.info('Loading testing data...')
         test_loaders, data_config = test_load(args)
+        _logger.info('Done loading testing data.')
 
     # run an input-output test
     if args.io_test:
@@ -834,7 +840,9 @@ def _main(args):
         return
 
     # load the model
+    _logger.info('Loading model...')
     model, model_info, loss_func = model_setup(args, data_config, device=dev)
+    _logger.info('Done loading model.')
 
     # TODO: load checkpoint
     # if args.backend is not None:
@@ -903,7 +911,7 @@ def _main(args):
 
             # do training
             _logger.info('-' * 50)
-            _logger.info('Epoch #%d training' % epoch)
+            _logger.info('Training epoch #%d...' % epoch)
             # use custom training function if the model has one
             if hasattr(model, 'train_single_epoch'):
                 _logger.info('Using model-specific custom training loop.')
@@ -914,24 +922,33 @@ def _main(args):
             # else use the default training loop
             else: train(model, loss_func, opt, scheduler, train_loader, dev, epoch,
                     steps_per_epoch=args.steps_per_epoch, grad_scaler=grad_scaler, tb_helper=tb)
+            _logger.info('Training epoch #%d done.' % epoch)
 
             # save the state of the model after this epoch
             if args.model_prefix and (args.backend is None or local_rank == 0):
+                _logger.info('Saving model state...')
                 dirname = os.path.dirname(args.model_prefix)
                 if dirname and not os.path.exists(dirname):
                     os.makedirs(dirname)
                 state_dict = model.module.state_dict() if isinstance(
                     model, (torch.nn.DataParallel, torch.nn.parallel.DistributedDataParallel)) else model.state_dict()
-                torch.save(state_dict, args.model_prefix + '_epoch-%d_state.pt' % epoch)
-                torch.save(opt.state_dict(), args.model_prefix + '_epoch-%d_optimizer.pt' % epoch)
+                model_save_name = args.model_prefix + '_epoch-%d_state.pt' % epoch
+                optimizer_save_name = args.model_prefix + '_epoch-%d_optimizer.pt' % epoch
+                torch.save(state_dict, model_save_name)
+                torch.save(opt.state_dict(), optimizer_save_name)
+                _logger.info(f'Model state saved to {model_save_name}')
+                _logger.info(f'Optimizer state save dto {optimizer_save_name}')
             # if args.backend is not None and local_rank == 0:
             # TODO: save checkpoint
             #     save_checkpoint()
 
             # do validation
-            _logger.info('Epoch #%d validating' % epoch)
+            _logger.info('Validating epoch #%d...' % epoch)
             valid_metric = evaluate(model, val_loader, dev, epoch, loss_func=loss_func,
                                     steps_per_epoch=args.steps_per_epoch_val, tb_helper=tb)
+            _logger.info('Validating epoch #%d done.' % epoch)
+            _logger.info('Current validation metric: %.5f (best: %.5f)' %
+                         (valid_metric, best_valid_metric), color='bold')
             is_best_epoch = (
                 valid_metric < best_valid_metric) if args.regression_mode else(
                 valid_metric > best_valid_metric)
@@ -942,9 +959,6 @@ def _main(args):
                 if args.model_prefix and (args.backend is None or local_rank == 0):
                     shutil.copy2(args.model_prefix + '_epoch-%d_state.pt' %
                                  epoch, args.model_prefix + '_best_epoch_state.pt')
-                    # torch.save(model, args.model_prefix + '_best_epoch_full.pt')
-            _logger.info('Epoch #%d: Current validation metric: %.5f (best: %.5f)' %
-                         (epoch, valid_metric, best_valid_metric), color='bold')
 
     # do testing if requested
     if args.data_test:
