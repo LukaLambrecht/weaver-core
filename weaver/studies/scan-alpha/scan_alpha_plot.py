@@ -9,9 +9,9 @@ from sklearn.metrics import roc_auc_score
 thisdir = os.path.abspath(os.path.dirname(__file__))
 weavercoredir = os.path.abspath(os.path.join(thisdir, '../../../'))
 sys.path.append(weavercoredir)
-from weaver.test.plot_roc import get_events_from_file
-from weaver.test.plot_roc import get_scores_from_events
-from weaver.test.plot_roc import get_discos_from_events
+from weaver.studies.evaluation.evaluationtools import get_events_from_file
+from weaver.studies.evaluation.evaluationtools import get_scores_from_events
+from weaver.studies.evaluation.evaluationtools import get_discos_from_events
 
 
 if __name__=='__main__':
@@ -22,13 +22,22 @@ if __name__=='__main__':
     parser.add_argument('-o', '--outputfile', required=True)
     parser.add_argument('-s', '--signal_mask', required=True)
     parser.add_argument('-c', '--correlation', default=None)
+    parser.add_argument('--plot_roc_dirs', default=[], nargs='+')
     args = parser.parse_args()
 
-    # loop over alpha directories inside the result directory
-    alphadirs = os.listdir(args.resultdir)
-    print(f'Found {len(alphadirs)} alpha directories.')
-    results = []
-    for alphadir in sorted(alphadirs):
+    # handle case of provided input json file
+    if args.resultdir.endswith('.json'):
+        with open(args.resultdir, 'r') as f:
+            results = json.load(f)
+
+    # handle case of provided result directory
+    else:
+    
+      # loop over alpha directories inside the result directory
+      alphadirs = [d for d in os.listdir(args.resultdir) if os.path.isdir(os.path.join(args.resultdir, d))]
+      print(f'Found {len(alphadirs)} alpha directories.')
+      results = []
+      for alphadir in sorted(alphadirs):
         result = {'alpha': 0., 'aucs': [], 'dccoeffs': []}
 
         # find alpha value from directory name
@@ -50,7 +59,7 @@ if __name__=='__main__':
             # read events and scores from input file
             events = get_events_from_file(resultfile, args.signal_mask, treename='Events',
                correlations=[args.correlation] if args.correlation is not None else None)
-            (scores, labels, scores_sig, scores_bkg) = get_scores_from_events(events, args.signal_mask)
+            (scores, label) = get_scores_from_events(events, args.signal_mask)
 
             # calculate AUC
             auc = roc_auc_score(labels, scores)
@@ -59,7 +68,8 @@ if __name__=='__main__':
             dccoeff = 0
             if args.correlation is not None:
                 mask = (labels == 0) # only for background events
-                dccoeffs = get_discos_from_events(events, scores, [args.correlation], npoints=1000, mask=mask)
+                dccoeffs = get_discos_from_events(events, scores, [args.correlation],
+                             npoints=1000, niterations=5, mask=mask)
                 dccoeff = dccoeffs[args.correlation]
 
             # add results
@@ -79,9 +89,15 @@ if __name__=='__main__':
         result['dccoeff_min'] = result['dccoeff_avg'] - np.std(result['dccoeffs'])
         result['dccoeff_max'] = result['dccoeff_avg'] + np.std(result['dccoeffs'])
         results.append(result)
-    print()
+      print()
+
+      # write to file for later quicker retrieval
+      resultfile = os.path.splitext(args.outputfile)[0]+ '.json'
+      with open(resultfile, 'w') as f:
+          json.dump(results, f)
 
     # format results
+    print('Formatting results...')
     alphas = np.array([results[idx]['alpha'] for idx in range(len(results))])
     auc_avg = np.array([results[idx]['auc_avg'] for idx in range(len(results))])
     auc_min = np.array([results[idx]['auc_min'] for idx in range(len(results))])
@@ -99,6 +115,7 @@ if __name__=='__main__':
     dccoeff_max = dccoeff_max[sorted_ids]
 
     # make a plot
+    print('Making plot...')
     fig, ax = plt.subplots()
     ax.plot(alphas, auc_avg, color='b', label='AUC (classification)')
     ax.fill_between(alphas, auc_min, auc_max, color='b', alpha=0.5)
@@ -110,8 +127,23 @@ if __name__=='__main__':
     ax.set_xlabel('Disco strength parameter', fontsize=12)
 
     ax.set_yscale('log')
-    ax.set_ylim((0.01, 1.))
+    ax.set_ylim((0.001, 1.))
     ax.grid(visible=True, which='both')
 
     fig.tight_layout()
     fig.savefig(args.outputfile)
+
+    # plot full results (roc, correlation, etc)
+    # for a selected number of trainings
+    if len(args.plot_roc_dirs) > 0:
+        plot_roc_dirs = [os.path.abspath(d) for d in args.plot_roc_dirs]
+        cmd = 'python ../evaluation/evaluate_loop.py'
+        cmd += ' -m {}'.format(' '.join(plot_roc_dirs))
+        cmd += ' -i output.root'
+        cmd += f' -s {args.signal_mask}'
+        cmd += ' -t Events'
+        cmd += f' -c {args.correlation}'
+        cmd += ' --plot_score_dist'
+        cmd += ' --plot_roc'
+        cmd += ' --plot_correlation'
+        os.system(cmd)
