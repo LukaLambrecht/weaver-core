@@ -16,7 +16,15 @@ def _as_list(x):
 
 
 def _md5(fname):
-    '''https://stackoverflow.com/questions/3431825/generating-an-md5-checksum-of-a-file'''
+    '''
+    Generate an md5 hash code for a given file.
+    This hash code can be used as a checksum to verify data integrity.
+    In this repo it seems to be used to uniquely link a configuration file
+    and its auto-augmented equivalent (e.g. holding the computed reweighting factors).
+
+    For more info on the specific implementation:
+    https://stackoverflow.com/questions/3431825/generating-an-md5-checksum-of-a-file
+    '''
     import hashlib
     hash_md5 = hashlib.md5()
     with open(fname, "rb") as f:

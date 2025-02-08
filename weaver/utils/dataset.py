@@ -334,7 +334,13 @@ class SimpleIterDataset(torch.utils.data.IterableDataset):
         if '.auto.yaml' in data_config_file:
             data_config_autogen_file = data_config_file
         else:
+            # generate md5 hash for the given configuration file
+            # (the md5 hash is uniquely determined from the file contents,
+            #  it is basically a way of representing the full file content
+            #  in a singe hash code, so that manual and auto-generated config files
+            #  are matched correctly by their file content.)
             data_config_md5 = _md5(data_config_file)
+            # check if a file with the correct md5 hash appendix exists
             data_config_autogen_file = data_config_file.replace('.yaml', '.%s.auto.yaml' % data_config_md5)
             if os.path.exists(data_config_autogen_file):
                 data_config_file = data_config_autogen_file

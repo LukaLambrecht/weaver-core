@@ -850,9 +850,10 @@ def _main(args):
     # if args.backend is not None:
     #     load_checkpoint()
 
-    # in case only config printing was requested, stop here
-    if args.print:
-        return
+    # in case only config printing was requested, stop here.
+    # note: the workflow up to this point is not only printing,
+    # it includes writing auto-generated config files (e.g. with weight info)
+    if args.print: return
 
     # profile the model if requested (then exit)
     if args.profile:
