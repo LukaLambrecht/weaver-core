@@ -39,11 +39,13 @@ file_magic:
   sample:
     HHto4b_mH_125_powheg_pythia8_Run3_.+\.root: 125
     qcd-mg_.+\.root: 1
+    ttbar-powheg_.+\.root: 2
 
 new_variables:
     # Define new variables as a function of existing variables
     isHHto4b_mH_125: sample==125
     isQCD: sample==1
+    isTT: sample==2
     isSignal: sample>=100
     isBackground: sample<100
 
@@ -95,6 +97,9 @@ observers:
   # to make post-training conclusions.
   - dHH_H1_regmass
   - dHH_H2_regmass
+  - isHHto4b_mH_125
+  - isQCD
+  - isTT
 
 weights:
    ### [option 2] compute weights on-the-fly using reweighting histograms
@@ -112,5 +117,5 @@ weights:
    #       just use any two variables with a single bin with large enough range
    #       (e.g. njets: [-1, 1000])
    reweight_discard_under_overflow: False
-   reweight_classes: [isSignal, isQCD]
-   class_weights: [1, 1]
+   reweight_classes: [isSignal, isQCD, isTT]
+   class_weights: [1, 0.5, 0.5]

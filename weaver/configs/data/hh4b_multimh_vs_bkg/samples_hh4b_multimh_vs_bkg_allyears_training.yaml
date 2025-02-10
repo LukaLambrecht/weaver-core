@@ -1,0 +1,8 @@
+# signal samples
+- /blue/avery/llambre1.brown/hhto4b-samples/ntuples-v2/ntuples_*_0L/mc/pieces/HHto4b_mH_*_powheg_pythia8_Run3_*_v2_*_tree.root
+
+# QCD samples
+- /blue/avery/llambre1.brown/hhto4b-samples/ntuples-bkg/ntuples_*/qcd-mg_tree_[0,1,2,3,4].root
+
+# ttbar samples
+- /blue/avery/llambre1.brown/hhto4b-samples/ntuples-bkg/ntuples_*/ttbar-powheg_tree_[0,1,2,3,4].root
