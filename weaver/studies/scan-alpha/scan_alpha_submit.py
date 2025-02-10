@@ -20,14 +20,15 @@ if __name__=='__main__':
     # model config
     model_config = os.path.join(weaverdir, 'configs/models/model_mlp_disco.py')
     # sample list for training data
-    #sample_config_train = os.path.join(weaverdir, 'configs/data/hh4b_mh125_vs_bkg/samples_hh4b_mh125_vs_qcd_allyears.yaml')
-    sample_config_train = os.path.join(weaverdir, 'configs/data/hh4b_multimh_vs_bkg/samples_hh4b_multimh_vs_qcd_allyears.yaml')
+    #sample_config_train = os.path.join(weaverdir, 'configs/data/hh4b_mh125_vs_bkg/samples_hh4b_mh125_vs_bkg_allyears.yaml')
+    sample_config_train = os.path.join(weaverdir, 'configs/data/hh4b_multimh_vs_bkg/samples_hh4b_multimh_vs_bkg_allyears.yaml')
     # sample list for testing data
-    sample_config_test = os.path.join(weaverdir, 'configs/data/hh4b_mh125_vs_bkg/samples_hh4b_mh125_vs_qcd_2022-postEE.yaml')
+    sample_config_test = os.path.join(weaverdir, 'configs/data/hh4b_mh125_vs_bkg/samples_hh4b_mh125_vs_bkg_2022-postEE.yaml')
     # base output dir
-    base_outputdir = os.path.join(thisdir, 'output_test_3')
+    base_outputdir = os.path.join(thisdir, 'output_test_2')
     # alpha range
-    alphas = np.concatenate((np.linspace(0, 1, num=11), np.linspace(1.5, 3, num=4)))
+    #alphas = np.concatenate((np.linspace(0, 1, num=11), np.linspace(1.5, 3, num=4)))
+    alphas = np.linspace(0, 1, num=6)
     #alphas = np.array([0])
     # network settings
     architecture = [16, 8, 4]
@@ -39,7 +40,7 @@ if __name__=='__main__':
     runmode = 'slurm'
     #conda_activate = 'source /eos/user/l/llambrec/miniforge3/bin/activate'
     #conda_env = 'weaver'
-    slurmscript = 'sjob_weaver_3.sh'
+    slurmscript = 'sjob_weaver_2.sh'
     env_cmds = ([
         'source /blue/avery/llambre1.brown/miniforge3/bin/activate',
         'conda activate weaver',
