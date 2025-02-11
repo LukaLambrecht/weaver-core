@@ -20,21 +20,21 @@ if __name__=='__main__':
     # model config
     model_config = os.path.join(weaverdir, 'configs/models/model_mlp_disco.py')
     # sample list for training data
-    #sample_config_train = os.path.join(weaverdir, 'configs/data/hh4b_mh125_vs_bkg/samples_hh4b_mh125_vs_bkg_allyears.yaml')
-    sample_config_train = os.path.join(weaverdir, 'configs/data/hh4b_multimh_vs_bkg/samples_hh4b_multimh_vs_bkg_allyears.yaml')
+    #sample_config_train = os.path.join(weaverdir, 'configs/data/hh4b_mh125_vs_bkg/samples_hh4b_mh125_vs_bkg_allyears_training.yaml')
+    sample_config_train = os.path.join(weaverdir, 'configs/data/hh4b_multimh_vs_bkg/samples_hh4b_multimh_vs_bkg_allyears_training.yaml')
     # sample list for testing data
-    sample_config_test = os.path.join(weaverdir, 'configs/data/hh4b_mh125_vs_bkg/samples_hh4b_mh125_vs_bkg_2022-postEE.yaml')
+    sample_config_test = os.path.join(weaverdir, 'configs/data/hh4b_mh125_vs_bkg/samples_hh4b_mh125_vs_bkg_allyears_testing.yaml')
     # base output dir
     base_outputdir = os.path.join(thisdir, 'output_test_2')
     # alpha range
     #alphas = np.concatenate((np.linspace(0, 1, num=11), np.linspace(1.5, 3, num=4)))
-    alphas = np.linspace(0, 1, num=6)
+    alphas = np.linspace(0, 10, num=11)
     #alphas = np.array([0])
     # network settings
     architecture = [16, 8, 4]
     num_epochs = 30
     steps_per_epoch = 150
-    batch_size = 256
+    batch_size = 512
     num_trainings = 5
     # runmode and job settings
     runmode = 'slurm'
@@ -87,6 +87,9 @@ if __name__=='__main__':
             network_kwargs = f'disco_alpha {alpha}'
             network_kwargs += f' disco_power 1'
             network_kwargs += f' architecture {arch_str}'
+            #network_kwargs += f' disco_label 0' # only bkg events
+            #network_kwargs += f' disco_mass_min 50' # mass range
+            #network_kwargs += f' disco_mass_max 200' # mass range
 
             # set output file for test results
             test_output = os.path.join(outputdir, 'output.root')
@@ -107,6 +110,11 @@ if __name__=='__main__':
             cmd += ' --in-memory --fetch-step 1'
             cmd += ' --copy-inputs'
             cmds.append(cmd)
+
+            # write the command to a txt file in the workiing directory
+            # (not used, just for later reference and bookkeeping)
+            cmdfile = os.path.join(outputdir, 'weaver_cmd.txt')
+            with open(cmdfile, 'w') as f: f.write(cmd)
 
     # run or submit commands
     if runmode == 'local':

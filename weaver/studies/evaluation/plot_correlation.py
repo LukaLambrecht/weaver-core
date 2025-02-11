@@ -2,6 +2,7 @@ import os
 import sys
 import argparse
 import numpy as np
+import matplotlib as mpl
 import matplotlib.pyplot as plt
 
 thisdir = os.path.abspath(os.path.dirname(__file__))
@@ -96,14 +97,44 @@ def plot_correlation_from_events(events,
             ax.set_xlabel(varname, fontsize=12)
             ax.set_ylabel('Classifier output score', fontsize=12)
             ax.set_title(f'Correlation between {varname} and classifier output score', fontsize=12)
+            txt = ax.text(0.95, 0.3, label, fontsize=12,
+                    ha='right', va='top', transform=ax.transAxes)
+            txt.set_bbox(dict(facecolor='white', alpha=0.5))
             if calculate_disco:
-                ax.text(0.95, 0.2, 'DisCo: {:.3f}'.format(dccoeffs[varname]), fontsize=15,
-                ha='right', va='top', transform=ax.transAxes)
-            leg = ax.legend(fontsize=12)
-            for lh in leg.legend_handles:
-                lh.set_alpha(1)
-                lh._sizes = [30]
-            figname = os.path.join(outputdir, f'correlation_{tag}_{varname}.png')
+                txt = ax.text(0.95, 0.2, 'DisCo: {:.3f}'.format(dccoeffs[varname]), fontsize=12,
+                        ha='right', va='top', transform=ax.transAxes)
+                txt.set_bbox(dict(facecolor='white', alpha=0.5))
+            figname = os.path.join(outputdir, f'correlation_{tag}_{varname}_scatter.png')
+            fig.savefig(figname)
+            print(f'Saved figure {figname}.')
+
+        # same as above but in 2D histogram format instead of scatter plot
+        if plot_correlation and outputdir is not None:
+            cvar = events[varname]
+            cscores = scores
+            if category_branch is not None:
+                cvar = cvar[mask]
+                cscores = cscores[mask]
+            score_bins = np.linspace(np.amin(cscores), np.amax(cscores), num=101)
+            var_bins = np.linspace(0, 400, num=41) # ad hoc hardcoded...
+            hist = np.histogram2d(cscores, cvar, bins=(score_bins, var_bins))[0]
+            hist /= np.amax(hist)
+            fig, ax = plt.subplots()
+            im = ax.imshow(hist, cmap='plasma', interpolation='none', origin='lower', aspect='auto',
+                        extent=(var_bins[0], var_bins[-1], score_bins[0], score_bins[-1]),
+                        norm=mpl.colors.LogNorm(vmin=1e-2, vmax=1))
+            fig.colorbar(im, ax=ax)
+            ax.set_xlabel(varname, fontsize=12)
+            ax.set_ylabel('Classifier output score', fontsize=12)
+            ax.set_title(f'Correlation between {varname} and classifier output score', fontsize=12)
+            txt = ax.text(0.95, 0.3, label, fontsize=12,
+                      ha='right', va='top', transform=ax.transAxes)
+            txt.set_bbox(dict(facecolor='white', alpha=0.5))
+            if calculate_disco:
+                txt = ax.text(0.95, 0.2, 'DisCo: {:.3f}'.format(dccoeffs[varname]), fontsize=12,
+                          ha='right', va='top', transform=ax.transAxes)
+                txt.set_bbox(dict(facecolor='white', alpha=0.5))
+            figname = os.path.join(outputdir, f'correlation_{tag}_{varname}_hist.png')
             fig.savefig(figname)
             print(f'Saved figure {figname}.')
 
@@ -128,7 +159,7 @@ def plot_correlation_from_events(events,
             # make a plot
             fig, ax = plt.subplots()
             #bins = np.histogram(events[varname], bins=20)[1]
-            bins = np.linspace(0, 400, num=41) # ad hoc
+            bins = np.linspace(0, 400, num=41) # ad hoc hardcoded...
             cmap = plt.get_cmap('cool', len(slices))
             for idx, (cslice, clabel) in enumerate(zip(slices, labels)):
                 ax.hist(cslice, bins=bins, density=True,
@@ -137,14 +168,19 @@ def plot_correlation_from_events(events,
             ax.set_xlabel(varname, fontsize=12)
             ax.set_ylabel('Events (normalized)', fontsize=12)
             ax.set_title(f'Correlation between {varname} and classifier output score', fontsize=12)
-            ax.text(0.95, 0.3, label, fontsize=12,
+            txt = ax.text(0.95, 0.3, label, fontsize=12,
                     ha='right', va='top', transform=ax.transAxes)
+            txt.set_bbox(dict(facecolor='white', alpha=0.5))
+            if calculate_disco:
+                txt = ax.text(0.95, 0.2, 'DisCo: {:.3f}'.format(dccoeffs[varname]), fontsize=12,
+                        ha='right', va='top', transform=ax.transAxes)
+                txt.set_bbox(dict(facecolor='white', alpha=0.5))
             leg = ax.legend(fontsize=12)
             for lh in leg.legend_handles:
                 lh.set_alpha(1)
                 lh._sizes = [30]
             fig.tight_layout()
-            figname = os.path.join(outputdir, f'correlation_slices_{tag}_{varname}.png')
+            figname = os.path.join(outputdir, f'correlation_{tag}_{varname}_slices.png')
             fig.savefig(figname)
             print(f'Saved figure {figname}.')
 
@@ -169,7 +205,7 @@ if __name__=='__main__':
     if args.categories is not None:
         for category in args.categories:
             if category.lower()=="none": continue
-        correlation_branches.append(category)
+            correlation_branches.append(category)
     events = get_events_from_file(args.inputfile,
               treename = args.treename,
               correlation_branches = correlation_branches)
