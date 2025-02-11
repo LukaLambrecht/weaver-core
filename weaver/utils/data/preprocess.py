@@ -207,14 +207,29 @@ class WeightMaker(object):
                             branch_magic=self._data_config.branch_magic,
                             file_magic=self._data_config.file_magic,
                             load_range=load_range)
-        _logger.info(f'Done reading files, read {len(table)} events.')
+
+        # append the labels and other auxiliary variables
+        # note: for efficiency, this could be done after selection instead of before;
+        #       the only reason it is kept here is for printouts of the number events per label.
+        table = _build_new_variables(table, {k: v for k, v in self._data_config.var_funcs.items() if k in aux_branches})
+
+        # do some printouts
+        _logger.info(f'Done reading files, read {len(table)} events (unweighted).')
+        for label in self._data_config.reweight_classes:
+            mask = (table[label] == 1)
+            _logger.info(f'  - {label}: {np.sum(mask)} events (unweighted).')
         
         # other preprocessing (applying selection and building new variables)
         _logger.info('Preprocessing files for creating reweighting factors...')
         table = _apply_selection(table, self._data_config.selection, funcs=self._data_config.var_funcs)
-        table = _build_new_variables(table, {k: v for k, v in self._data_config.var_funcs.items() if k in aux_branches})
         table = table[keep_branches]
-        _logger.info(f'Done preprocessing, selected {len(table)} events.')
+
+        # do some printouts
+        _logger.info(f'Done preprocessing, selected {len(table)} events (unweighted).')
+        for label in self._data_config.reweight_classes:
+            mask = (table[label] == 1)
+            _logger.info(f'  - {label}: {np.sum(mask)} events (unweighted).')
+
         return table
 
     def make_weights(self, table):

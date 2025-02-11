@@ -853,7 +853,9 @@ def _main(args):
     # in case only config printing was requested, stop here.
     # note: the workflow up to this point is not only printing,
     # it includes writing auto-generated config files (e.g. with weight info)
-    if args.print: return
+    if args.print:
+        _logger.info('The --print option was specified, so exiting here.')
+        return
 
     # profile the model if requested (then exit)
     if args.profile:
