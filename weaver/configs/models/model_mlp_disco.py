@@ -10,6 +10,7 @@ import sys
 import json
 import tqdm
 import torch
+import numpy as np
 
 thisdir = os.path.abspath(os.path.dirname(__file__))
 weavercoredir = os.path.abspath(os.path.join(thisdir, '../../../'))
@@ -23,9 +24,12 @@ class DiscoNetwork(torch.nn.Module):
     def __init__(self, n_inputs,
                  architecture=[8],
                  num_classes=2,
-                 disco_index=0,
+                 disco_prediction_index=0,
                  disco_alpha=0,
                  disco_power=1,
+                 disco_label=None,
+                 disco_mass_min=None,
+                 disco_mass_max=None,
                  **kwargs):
         super().__init__(**kwargs)
 
@@ -33,9 +37,12 @@ class DiscoNetwork(torch.nn.Module):
         self.n_inputs = n_inputs
         self.architecture = architecture
         self.num_classes = num_classes
-        self.disco_index = disco_index
+        self.disco_prediction_index = disco_prediction_index
         self.disco_alpha = disco_alpha
         self.disco_power = disco_power
+        self.disco_label = disco_label
+        self.disco_mass_min = disco_mass_min
+        self.disco_mass_max = disco_mass_max
 
         # define intermediate layers
         n_units = [n_inputs] + architecture
@@ -79,9 +86,20 @@ class DiscoNetwork(torch.nn.Module):
         predictions_flat, labels_flat, _ = _flatten_preds(predictions, label=labels)
         celoss = self.celossfunction(predictions_flat, labels_flat)
 
-        # calculate distance correlation
+        # prepare data for calculation of distance correlation
         # note: can only take one dimension in the prediction!
-        predictions_column = predictions[:, self.disco_index]
+        predictions_column = predictions[:, self.disco_prediction_index]
+
+        # optional: do preselection on which predictions/mass values to use in the disco calculation
+        mask = np.ones(len(predictions_column))
+        if self.disco_label is not None: mask = np.where(labels != self.disco_label, 0, mask)
+        if self.disco_mass_min is not None: mask = np.where(mass < self.disco_mass_min, 0, mask)
+        if self.disco_mass_max is not None: mask = np.where(mass > self.disco_mass_max, 0, mask)
+        mask = mask.astype(bool)
+        predictions_column = predictions_column[mask]
+        mass = mass[mask]
+
+        # calculate distance correlation
         discoloss = distance_correlation(predictions_column, mass, power=self.disco_power)
 
         # make the sum
@@ -174,7 +192,8 @@ class DiscoNetwork(torch.nn.Module):
 
 
 def get_model(data_config, architecture=[8], 
-      disco_index=0, disco_alpha=0, disco_power=1, 
+      disco_prediction_index=0, disco_alpha=0, disco_power=1,
+      disco_label=None, disco_mass_min=None, disco_mass_max=None,
       **kwargs):
     # settings
     print('Info from get_model:')
@@ -189,11 +208,17 @@ def get_model(data_config, architecture=[8],
         architecture = json.loads(architecture)
     print(f'  Found following architecture: {architecture}')
     print('  Found following DisCo parameters:')
-    print(f'  disco_index: {disco_index}')
+    print(f'  disco_prediction_index: {disco_prediction_index}')
     print(f'  disco_alpha: {disco_alpha}')
     print(f'  disco_power: {disco_power}')
+    print(f'  disco_label: {disco_label}')
+    print(f'  disco_mass_min: {disco_mass_min}')
+    print(f'  disco_mass_max: {disco_mass_max}')
     model = DiscoNetwork(n_inputs, architecture=architecture,
-              disco_index=disco_index, disco_alpha=disco_alpha, disco_power=disco_power)
+              disco_prediction_index=disco_prediction_index,
+              disco_alpha=disco_alpha, disco_power=disco_power,
+              disco_label=disco_label,
+              disco_mass_min=disco_mass_min, disco_mass_max=disco_mass_max)
     # model info
     model_info = {
       'input_names': list(data_config.input_names),

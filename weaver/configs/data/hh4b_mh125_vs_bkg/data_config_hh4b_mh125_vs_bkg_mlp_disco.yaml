@@ -107,9 +107,9 @@ weights:
    reweight_basewgt: np.ones(len(genWeight))
    reweight_method: flat
    reweight_threshold: 0
-   reweight_load_fraction: 0.05
+   reweight_load_fraction: 1.
    reweight_vars:
-      dHH_H1_regmass: [0., 1000.]
+      dHH_H1_regmass: [0., 75., 100., 125., 150., 175., 1000.]
       dHH_H2_regmass: [0., 1000.]
    # note: exactly 2 reweight_vars are needed for syntax.
    #       in case only reweighting of total number of events is required,
