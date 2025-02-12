@@ -3,11 +3,10 @@
 # Use case: background samples are too big for practical purposes,
 # would be easier to split them into many smaller files.
 
-# Note: does not work yet, unresolved dtype errors on writing.
-
 import os
 import sys
 import uproot
+import numpy as np
 import awkward as ak
 
 
@@ -16,13 +15,13 @@ if __name__=='__main__':
     # set sources and targets
     cpdirs = ({
         '/blue/avery/ekoenig/Run3_HHTo4B_NTuples/2021/Main_PNet_MinDiag_w4j35_w2bj30_dHHjw30_AN23151_PNetRegOnLooseJets_StandardForOthers_woSyst_18Nov2024_2021_0L/mc/':
-        '/blue/avery/llambre1.brown/hhto4b-samples/ntuples-bkg/ntuples_2021',
+        '/blue/avery/llambre1.brown/hhto4b-samples/ntuples-bkg-v2/ntuples_2021',
         '/blue/avery/ekoenig/Run3_HHTo4B_NTuples/2022/Main_PNet_MinDiag_w4j35_w2bj30_dHHjw30_AN23151_PNetRegOnLooseJets_StandardForOthers_woSyst_18Nov2024_2022_0L/mc/':
-        '/blue/avery/llambre1.brown/hhto4b-samples/ntuples-bkg/ntuples_2022',
+        '/blue/avery/llambre1.brown/hhto4b-samples/ntuples-bkg-v2/ntuples_2022',
         '/blue/avery/ekoenig/Run3_HHTo4B_NTuples/2023/Main_PNet_MinDiag_4j30_2bj30_dHHjw25_AN23151_PNetRegOnLooseJets_StandardForOthers_woSyst_18Nov2024_2023_0L/mc/':
-        '/blue/avery/llambre1.brown/hhto4b-samples/ntuples-bkg/ntuples_2023',
+        '/blue/avery/llambre1.brown/hhto4b-samples/ntuples-bkg-v2/ntuples_2023',
         '/blue/avery/ekoenig/Run3_HHTo4B_NTuples/2020/Main_PNet_MinDiag_4j30_2bj30_dHHjw25_AN23151_PNetRegOnLooseJets_StandardForOthers_woSyst_18Nov2024_2020_0L/mc/':
-        '/blue/avery/llambre1.brown/hhto4b-samples/ntuples-bkg/ntuples_2020'
+        '/blue/avery/llambre1.brown/hhto4b-samples/ntuples-bkg-v2/ntuples_2020'
     })
     cpmap = {}
     for sourcedir, targetdir in cpdirs.items():
@@ -32,7 +31,7 @@ if __name__=='__main__':
     # other settings
     treename = 'Events'
     events_per_file = 10000
-    max_files = 10
+    num_files = 10
 
     # file-specific settings
     # (did not find an elegant way to avoid this...)
@@ -49,22 +48,24 @@ if __name__=='__main__':
         # read file
         with uproot.open(source) as f:
             tree = f[treename]
-            print('Read tree with {} events'.format(tree.num_entries))
+            num_entries = tree.num_entries
+            print('Read tree with {} events'.format(num_entries))
+
+            # generate random start indices
+            # (maybe to do: avoid potential overlap between batches)
+            start_ids = np.random.choice(np.arange(num_entries-events_per_file), size=num_files)
 
             # loop over batches
-            for batchidx in range(max_files):
-
-                # break the loop if end of the source file was reached
-                if batchidx * events_per_file > tree.num_entries: break
+            for batchidx in range(num_files):
 
                 # set start and stop entry number
-                start = batchidx * events_per_file
-                stop = (batchidx+1) * events_per_file
+                start = start_ids[batchidx]
+                stop = start + events_per_file
 
                 # read the branches
                 branches = tree.arrays(entry_start=start, entry_stop=stop)
-                print('Read batch {} with {} entries and {} branches'.format(
-                    batchidx, len(branches), len(branches.fields)))
+                print('Read batch {} with {} entries (index {} - {}) and {} branches'.format(
+                    batchidx, len(branches), start, stop, len(branches.fields)))
 
                 # convert to format suitable for writing
                 # (see here: https://github.com/scikit-hep/uproot5/discussions/903)
