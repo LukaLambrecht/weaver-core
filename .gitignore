@@ -1,3 +1,6 @@
+# Ignore output dirs
+**output_*
+
 # Default models dir
 weaver/models
 

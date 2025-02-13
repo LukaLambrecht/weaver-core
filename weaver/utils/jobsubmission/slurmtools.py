@@ -54,6 +54,11 @@ def writeSlurmScript(cmds, script, force=False,
     print(f'Created slurm script {script}.')
 
 
+def submitCommandAsSlurmJob(cmd, script, **kwargs):
+    """Just an alias for submitCommandsAsSlurmJob for a single command"""
+    submitCommandsAsSlurmJob(cmd, script, **kwargs)
+
+
 def submitCommandsAsSlurmJob(cmds, script, env_cmds=None, **kwargs):
     """
     Submit a command or list of commands as a slurm job.

@@ -1,0 +1,129 @@
+# Copied from here: /afs/cern.ch/work/g/gouskos/public/forLuka
+# Kept without modification for later reference.
+
+treename: Events
+
+selection:
+   ### use `&`, `|`, `~` for logical operations on numpy arrays
+   ### can use functions from `math`, `np` (numpy), and `awkward` in the expression
+   (n_ak4>=3) & (n_ak4_btags_M>=2) & (alljets_ht>300) & (passmetfilters == 1) & (passjetvetomap == 1) & (passTrig_HLT_QuadPFJet70_50_40_35_PFBTagParticleNet_2BTagSum0p65 == 1) & (passL1unprescaled_HLT_QuadPFJet70_50_40_35_PFBTagParticleNet_2BTagSum0p65 == 1) & (passTrigObjMatching_HLT_QuadPFJet70_50_40_35_PFBTagParticleNet_2BTagSum0p65 == 1) & (avgbdisc_twoldgbdiscjets > 0.68) & (genWeight*xsecWeight<100.) & (hh_average_mass>50.)
+
+test_time_selection: (n_ak4>=3) & (n_ak4_btags_M>=2) & (alljets_ht>300) & (passmetfilters == 1) & (passjetvetomap == 1) & (passTrig_HLT_QuadPFJet70_50_40_35_PFBTagParticleNet_2BTagSum0p65 == 1) & (passL1unprescaled_HLT_QuadPFJet70_50_40_35_PFBTagParticleNet_2BTagSum0p65 == 1) & (passTrigObjMatching_HLT_QuadPFJet70_50_40_35_PFBTagParticleNet_2BTagSum0p65 == 1) & (avgbdisc_twoldgbdiscjets > 0.68) & (genWeight*xsecWeight<100.) & (hh_average_mass>50.)
+
+file_magic:
+  sample:
+    qcd-mg.+\.root: 1
+    ttbar-powheg.+\.root: 2
+    ggHH4b-kl1.+\.root: 3
+
+new_variables:
+   ### [format] name: formula
+   ### can use functions from `math`, `np` (numpy), and `awkward` in the expression
+   ak4_mask: ak.ones_like(ak4_pt)
+   ak4p4: _p4_from_ptetaphim(ak4_pt, ak4_eta, ak4_phi, ak4_mass)
+   ak4_px: ak4p4.px
+   ak4_py: ak4p4.py
+   ak4_pz: ak4p4.pz
+   ak4_energy: ak4p4.energy
+   ak4_pt_log: np.log(ak4_pt)
+   ak4_energy_log: np.log(ak4_energy)
+   #hh_average_mass: np.mean([dHH_H1_mass, dHH_H2_mass])
+   hh_average_mass: (0.5*(dHH_H1_mass+dHH_H2_mass))
+   #ak4_tag_B4: ak4_tag == 54
+   #ak4_tag_B3: ak4_tag == 53
+   #ak4_tag_B2: ak4_tag == 52
+   #ak4_tag_B1: ak4_tag == 51
+   #ak4_tag_B0: ak4_tag == 50
+   #ak4_tag_C4: ak4_tag == 44
+   #ak4_tag_C3: ak4_tag == 43
+   #ak4_tag_C2: ak4_tag == 42
+   #ak4_tag_C1: ak4_tag == 41
+   #ak4_tag_C0: ak4_tag == 40
+   isQCD: sample==1
+   isTT:  sample==2
+   isHH4B_kl1: sample==3
+
+preprocess:
+   ### method: [manual, auto] - whether to use manually specified parameters for variable standardization
+   method: manual
+   ### data_fraction: fraction of events to use when calculating the mean/scale for the standardization
+   data_fraction: 1
+
+inputs:
+   jet_features:
+      length: 6
+      pad_mode: wrap
+      vars:
+         ### [format 1]: var_name (no transformation)
+         ### [format 2]: [var_name,
+         ###              subtract_by(optional, default=None, no transf. if preprocess.method=manual, auto transf. if preprocess.method=auto),
+         ###              multiply_by(optional, default=1),
+         ###              clip_min(optional, default=-5),
+         ###              clip_max(optional, default=5),
+         ###              pad_value(optional, default=0)]
+         - [ak4_pt_log, 4, 1]
+         - [ak4_energy_log, 4, 1]
+         - [ak4_eta, null]
+         - [ak4_btag_L, null]
+         - [ak4_btag_M, null]
+         - [ak4_btag_T, null]
+         #- [ak4_tag_B4, null]
+         #- [ak4_tag_B3, null]
+         #- [ak4_tag_B2, null]
+         #- [ak4_tag_B1, null]
+         #- [ak4_tag_B0, null]
+         #- [ak4_tag_C4, null]
+         #- [ak4_tag_C3, null]
+         #- [ak4_tag_C2, null]
+         #- [ak4_tag_C1, null]
+         #- [ak4_tag_C0, null]
+   jet_vectors:
+      length: 6
+      pad_mode: wrap
+      vars:
+         - [ak4_px, null]
+         - [ak4_py, null]
+         - [ak4_pz, null]
+         - [ak4_energy, null]
+   jet_mask:
+      length: 6
+      pad_mode: constant
+      vars:
+         - [ak4_mask, null]
+
+labels:
+   ### type can be `simple`, `custom`
+   ### [option 1] use `simple` for binary/multi-class classification, then `value` is a list of 0-1 labels
+   type: simple
+   value: [isQCD, isTT, isHH4B_kl1]
+   ### [option 2] otherwise use `custom` to define the label, then `value` is a map
+   # type: custom
+   # value:
+   # target_mass: np.where(fj_isQCD, fj_genjet_sdmass, fj_gen_mass)
+
+observers:
+   - hh_average_mass
+   - dHH_H1_mass
+   - dHH_H2_mass
+   - n_ak4_btags_M
+   - dHH_HH_mass
+   - genWeight
+   - xsecWeight
+
+weights:
+   ### [option 1] use precomputed weights stored in the input files
+   # use_precomputed_weights: true
+   # weight_branches: [weight, class_weight]
+   ### [option 2] compute weights on-the-fly using reweighting histograms
+   use_precomputed_weights: false
+   reweight_basewgt: np.abs(genWeight*xsecWeight)
+   reweight_method: flat
+   reweight_threshold: 0
+   reweight_vars:
+      #hh_average_mass: [0., 30000.]
+      hh_average_mass: [50., 75., 100., 125., 150., 175., 200., 225., 250., 30000.]
+      alljets_ht: [0., 30000.]
+   reweight_classes:
+      [isHH4B_kl1, isQCD, isTT]
+   class_weights: [1, 1, 1]
+   reweight_hists:
