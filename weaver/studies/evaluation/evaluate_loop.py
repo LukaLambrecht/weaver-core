@@ -48,7 +48,8 @@ if __name__=='__main__':
             for background_category in args.background_categories:
 
                 # plot ROC
-                plot_roc_from_events(events, args.outputdir,
+                plot_roc_from_events(events,
+                    outputdir = outputdir,
                     score_branch = args.score_branch,
                     signal_branch = signal_category,
                     background_branch = background_category,
@@ -64,7 +65,7 @@ if __name__=='__main__':
 
             # plot correlations
             plot_correlation_from_events(events,
-                                  outputdir = args.outputdir,
+                                  outputdir = outputdir,
                                   score_branch = args.score_branch,
                                   category_branch = category,
                                   variable_branches = args.correlation_variables,

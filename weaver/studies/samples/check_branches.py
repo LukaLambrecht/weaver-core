@@ -15,6 +15,7 @@ if __name__=='__main__':
     parser.add_argument('-i', '--inputfiles', required=True, nargs='+')
     parser.add_argument('-t', '--treename', required=True)
     parser.add_argument('-b', '--branches', default=['auto'], nargs='+')
+    parser.add_argument('--try_load', default=False, action='store_true')
     args = parser.parse_args()
 
     # format branches to check
@@ -35,7 +36,17 @@ if __name__=='__main__':
 
             # find if branches are present
             for bidx, bname in enumerate(args.branches):
-                if bname in tree.keys(): results[fileidx, bidx] = 1
+                if bname not in tree.keys(): continue
+                results[fileidx, bidx] = 1
+                # try to load the branch in an array
+                if args.try_load:
+                    values = tree[bname].array(library='np')
+                    minvalue = np.min(values)
+                    dtype = values.dtype
+                    hasinf = np.any(np.isinf(values))
+                    hasnan = np.any(np.isnan(values))
+                    if hasinf or hasnan:
+                        print('Problem with branch {bname} in file {inputfile}')
 
     # number of present branches per file
     print('Number of branches per file:')

@@ -1,0 +1,97 @@
+#####################################
+# Data configuration for hh4b study #
+#####################################
+
+
+treename: Events
+
+selection:
+    # Define the selection for the training set
+    ( (n_ak4>=3)
+    & (n_ak4_btags_M>=2)
+    & (alljets_ht>300)
+    & (passmetfilters == 1)
+    & (passjetvetomap == 1)
+    & (avgbdisc_twoldgbdiscjets > 0.68)
+    & (hh_average_mass > 50.) )
+
+test_time_selection:
+    # Define the selection for the testing set
+    ( (n_ak4>=3)
+    & (n_ak4_btags_M>=2)
+    & (alljets_ht>300)
+    & (passmetfilters == 1)
+    & (passjetvetomap == 1)
+    & (avgbdisc_twoldgbdiscjets > 0.68)
+    & (hh_average_mass > 50.) )
+
+file_magic:
+  # Match file names to custom sample index
+  sample:
+    HHto4b_mH_125_powheg_pythia8_Run3_.+\.root: 125
+    QCD.+\.root: 1
+    TTto.+\.root: 2
+
+new_variables:
+    # Define new variables as a function of existing variables
+    hh_average_mass: (0.5*(dHH_H1_mass+dHH_H2_mass))
+    isHHto4b_mH_125: sample==125
+    isQCD: sample==1
+    isTT: sample==2
+    isSignal: sample==125
+    isBackground: sample<10
+
+    ak4_mask: ak.ones_like(ak4_pt)
+    ak4p4: _p4_from_ptetaphim(ak4_pt, ak4_eta, ak4_phi, ak4_mass)
+    ak4_px: ak4p4.px
+    ak4_py: ak4p4.py
+    ak4_pz: ak4p4.pz
+    ak4_energy: ak4p4.energy
+    ak4_pt_log: np.log(ak4_pt)
+    ak4_energy_log: np.log(ak4_energy)
+
+preprocess:
+   method: manual
+   data_fraction: 1
+
+inputs:
+   # Define input features to the network
+   input_features:
+      length: 6
+      pad_mode: constant
+      vars:
+         - [ak4_pt_log, 4, 1]
+         - [ak4_energy_log, 4, 1]
+         - [ak4_eta, null]
+         - [ak4_phi, null]
+         - [ak4_btag_L, null]
+         - [ak4_btag_M, null]
+         - [ak4_btag_T, null]
+
+labels:
+   type: simple
+   value: [isSignal, isBackground]
+
+observers:
+  # Make sure the decorrelated variable is used as observer,
+  # to make post-training conclusions.
+  - dHH_H1_mass
+  - dHH_H2_mass
+  - hh_average_mass
+  - isHHto4b_mH_125
+  - isQCD
+  - isTT
+
+weights:
+   ### [option 2] compute weights on-the-fly using reweighting histograms
+   use_precomputed_weights: false
+   #reweight_basewgt: np.abs(genWeight*xsecWeight)
+   reweight_basewgt: np.ones(len(genWeight))
+   reweight_method: flat
+   reweight_threshold: 0
+   reweight_load_fraction: 1.
+   reweight_vars:
+      hh_average_mass: [50., 75., 100., 125., 150., 175., 200., 225., 250., 30000.]
+      alljets_ht: [0., 30000.]
+   reweight_classes: [isSignal, isQCD, isTT]
+   class_weights: [1, 1, 1]
