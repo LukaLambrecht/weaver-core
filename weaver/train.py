@@ -426,6 +426,13 @@ def flops(model, model_info, device='cpu'):
       for k in model_info['input_names']]
     )
 
+    # alternative using a batch size larger than 1
+    # (once used in debugging, but not further used for now)
+    #batch_size = 128
+    #input_shapes = [list(model_info['input_shapes'][k]) for k in model_info['input_names']]
+    #for shape in input_shapes: shape[0] = batch_size
+    #inputs = tuple([torch.ones(shape, dtype=torch.float32, device=device) for shape in input_shapes])
+
     # get the model complexity
     macs, params = get_model_complexity_info(model, inputs,
       as_strings=True, print_per_layer_stat=True, verbose=True)
