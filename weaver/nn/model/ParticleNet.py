@@ -10,10 +10,21 @@ import torch.nn as nn
 
 
 def knn(x, k):
+    # Calculate k-nearest-neighbours
+    # Input arguments:
+    # - x: tensor with coordinates of shape (batch size, ncoordinates, npoints)
+    # - k: number of nearest neighbours
+    # Returns:
+    # - a tensor of shape (batch size, npoints, k) with indices of nearest neighbours
     inner = -2 * torch.matmul(x.transpose(2, 1), x)
     xx = torch.sum(x ** 2, dim=1, keepdim=True)
     pairwise_distance = -xx - inner - xx.transpose(2, 1)
-    idx = pairwise_distance.topk(k=k + 1, dim=-1)[1][:, :, 1:]  # (batch_size, num_points, k)
+    # check if k is not too large compared to the number of points
+    if k >= x.shape[2]:
+        msg = f'Error in knn calculation: the {k} nearest neighbours were requested,'
+        msg += f' but only {x.shape[2]} points are present per instance.'
+        raise Exception(msg)
+    idx = pairwise_distance.topk(k=k + 1, dim=-1)[1][:, :, 1:]
     return idx
 
 
@@ -101,7 +112,7 @@ class EdgeConvBlock(nn.Module):
             self.sc_act = nn.ReLU()
 
     def forward(self, points, features):
-
+        
         topk_indices = knn(points, self.k)
         x = self.get_graph_feature(features, self.k, topk_indices)
 
@@ -180,8 +191,6 @@ class ParticleNet(nn.Module):
         self.for_inference = for_inference
 
     def forward(self, points, features, mask=None):
-#         print('points:\n', points)
-#         print('features:\n', features)
         if mask is None:
             mask = (features.abs().sum(dim=1, keepdim=True) != 0)  # (N, 1, P)
         points *= mask
