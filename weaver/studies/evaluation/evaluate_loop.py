@@ -21,6 +21,7 @@ if __name__=='__main__':
     parser.add_argument('-b', '--background_categories', default=[], nargs='+')
     parser.add_argument('-c', '--correlation_categories', default=[], nargs='+')
     parser.add_argument('-v', '--correlation_variables', default=[], nargs='+')
+    parser.add_argument('--xsecweighting', default=False, action='store_true')
     parser.add_argument('--plot_score_dist', default=False, action='store_true')
     parser.add_argument('--plot_roc', default=False, action='store_true')
     parser.add_argument('--calculate_disco', default=False, action='store_true')
@@ -36,11 +37,13 @@ if __name__=='__main__':
 
         # load events
         correlation_branches = args.correlation_categories + args.correlation_variables
+        weight_branches = ['genWeight', 'xsecWeight'] if args.xsecweighting else None
         events = get_events_from_file(inputfile,
                   treename = args.treename,
                   signal_branches = args.signal_categories,
                   background_branches = args.background_categories,
-                  correlation_branches = correlation_branches)
+                  correlation_branches = correlation_branches,
+                  weight_branches = weight_branches)
 
         # loop over signal and background categories
         # for ROC plotting
@@ -49,6 +52,7 @@ if __name__=='__main__':
 
                 # plot ROC
                 plot_roc_from_events(events,
+                    xsecweighting = args.xsecweighting,
                     outputdir = outputdir,
                     score_branch = args.score_branch,
                     signal_branch = signal_category,
@@ -65,6 +69,7 @@ if __name__=='__main__':
 
             # plot correlations
             plot_correlation_from_events(events,
+                                  xsecweighting = args.xsecweighting,
                                   outputdir = outputdir,
                                   score_branch = args.score_branch,
                                   category_branch = category,

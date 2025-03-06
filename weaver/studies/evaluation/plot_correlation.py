@@ -14,7 +14,8 @@ from evaluationtools import get_events_from_file
 
 
 def plot_correlation_from_file(inputfile, treename=None,
-        category_branch=None, variable_branches=None, **kwargs):
+        category_branch=None, variable_branches=None,
+        xsecweighting=False, **kwargs):
     ### calculate and plot correlation directly from a file
 
     # format branch names to read
@@ -22,18 +23,24 @@ def plot_correlation_from_file(inputfile, treename=None,
     variable_branches = variable_branch if variable_branches is not None else []
     correlation_branches = category_branches + variable_branches
 
+    # format weight branch names
+    weight_branches = ['genWeight', 'xsecWeight'] if xsecweighting else None
+
     # read events
     events = get_events_from_file(inputfile, treename=treename,
-               correlation_branches=correlation_branches)
+               correlation_branches=correlation_branches,
+               weight_branches=weight_branches)
 
     # plot correlation from events
     return plot_correlation_from_events(events,
              category_branch = category_branch,
              variable_branches = variable_branches,
+             xsecweighting = xsecweighting,
              **kwargs)
 
 
 def plot_correlation_from_events(events,
+                                  xsecweighting = False,
                                   outputdir = None,
                                   score_branch = None,
                                   category_branch = None,
@@ -53,8 +60,10 @@ def plot_correlation_from_events(events,
     # note: if category_branch is None, the returned labels are None,
     #       and no masking will be performed.
     # note: the same is true if category_branch is "none".
-    (scores, labels) = get_scores_from_events(events, score_branch,
-                         signal_branch=category_branch)
+    (scores, labels, weights) = get_scores_from_events(events,
+                                  score_branch,
+                                  signal_branch=category_branch,
+                                  xsecweighting=xsecweighting)
     if category_branch is not None: mask = (labels == 1)
 
     # make output directory
@@ -88,9 +97,11 @@ def plot_correlation_from_events(events,
         if plot_correlation and outputdir is not None:
             cvar = events[varname]
             cscores = scores
+            cweights = weights # note: weights not used for now in scatter plot
             if category_branch is not None:
                 cvar = cvar[mask]
                 cscores = cscores[mask]
+                cweights = cweights[mask]
             fig, ax = plt.subplots()
             ax.scatter(cvar, cscores,
                 color='dodgerblue', label=label, alpha=0.3, s=1)
@@ -112,12 +123,14 @@ def plot_correlation_from_events(events,
         if plot_correlation and outputdir is not None:
             cvar = events[varname]
             cscores = scores
+            cweights = weights
             if category_branch is not None:
                 cvar = cvar[mask]
                 cscores = cscores[mask]
+                cweights = cweights[mask]
             score_bins = np.linspace(np.amin(cscores), np.amax(cscores), num=101)
             var_bins = np.linspace(0, 400, num=41) # ad hoc hardcoded...
-            hist = np.histogram2d(cscores, cvar, bins=(score_bins, var_bins))[0]
+            hist = np.histogram2d(cscores, cvar, weights=cweights, bins=(score_bins, var_bins))[0]
             hist /= np.amax(hist)
             fig, ax = plt.subplots()
             im = ax.imshow(hist, cmap='plasma', interpolation='none', origin='lower', aspect='auto',
@@ -153,7 +166,8 @@ def plot_correlation_from_events(events,
                 slicemask = ((scores > minscore) & (scores < maxscore))
                 if category_branch is not None: slicemask = ((slicemask) & (mask))
                 cvar = events[varname][slicemask]
-                slices.append(cvar)
+                cweights = weights[slicemask]
+                slices.append((cvar, cweights))
                 labels.append('{:.2f} < score < {:.2f}'.format(minscore, maxscore))
 
             # make a plot
@@ -162,9 +176,13 @@ def plot_correlation_from_events(events,
             bins = np.linspace(0, 400, num=41) # ad hoc hardcoded...
             cmap = plt.get_cmap('cool', len(slices))
             for idx, (cslice, clabel) in enumerate(zip(slices, labels)):
-                ax.hist(cslice, bins=bins, density=True,
-                  color=cmap(idx), label=clabel,
-                  histtype='step', linewidth=2)
+                hist = np.histogram(cslice[0], bins=bins, weights=cslice[1])[0]
+                norm = np.sum( np.multiply(hist, np.diff(bins) ) )
+                staterrors = np.sqrt(np.histogram(cslice[0], bins=bins, weights=np.square(cslice[1]))[0])
+                ax.stairs(hist/norm, edges=bins,
+                  color=cmap(idx), label=clabel, linewidth=2)
+                ax.stairs((hist+staterrors)/norm, baseline=(hist-staterrors)/norm,
+                        color=cmap(idx), edges=bins, fill=True, alpha=0.3)
             ax.set_xlabel(varname, fontsize=12)
             ax.set_ylabel('Events (normalized)', fontsize=12)
             ax.set_title(f'Correlation between {varname} and classifier output score', fontsize=12)

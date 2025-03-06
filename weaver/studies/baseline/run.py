@@ -15,8 +15,9 @@ if __name__=='__main__':
     # common settings
     weaverdir = os.path.join(weavercoredir, 'weaver')
     # data config
-    #data_config = os.path.abspath('configs/data_config_hh4b_mh125_vs_bkg_mlp_jetvars.yaml')
     #data_config = os.path.abspath('configs/data_config_hh4b_mh125_vs_qcd_mlp_jetvars.yaml')
+    #data_config = os.path.abspath('configs/data_config_hh4b_mh125_vs_tt_mlp_jetvars.yaml')
+    #data_config = os.path.abspath('configs/data_config_hh4b_mh125_vs_bkg_mlp_jetvars.yaml')
     data_config = os.path.abspath('configs/data_config_hh4b_mh125_vs_bkg_pnet.yaml')
     # model config
     #model_config = os.path.abspath('configs/model_mlp.py')
@@ -24,16 +25,18 @@ if __name__=='__main__':
     # sample list for training data
     sample_config_train = os.path.abspath('configs/samples_hh4b_mh125_vs_bkg_allyears_training.yaml')
     #sample_config_train = os.path.abspath('configs/samples_hh4b_mh125_vs_qcd_allyears_training.yaml')
+    #sample_config_train = os.path.abspath('configs/samples_hh4b_mh125_vs_tt_allyears_training.yaml')
     #sample_config_train = os.path.abspath('configs/samples_hh4b_mh125_vs_qcd400to600_allyears_training.yaml')
     # sample list for testing data
     sample_config_test = os.path.abspath('configs/samples_hh4b_mh125_vs_bkg_allyears_testing.yaml')
     #sample_config_test = os.path.abspath('configs/samples_hh4b_mh125_vs_qcd_allyears_testing.yaml')
+    #sample_config_test = os.path.abspath('configs/samples_hh4b_mh125_vs_tt_allyears_testing.yaml')
     #sample_config_test = os.path.abspath('configs/samples_hh4b_mh125_vs_qcd400to600_allyears_testing.yaml')
     # output dir
-    outputdir = os.path.join(thisdir, 'output_test_pnet_more_epochs')
+    outputdir = os.path.join(thisdir, 'output_test')
     # network settings
-    architecture = [16, 8, 4]
-    num_epochs = 100 # 50
+    #architecture = [16, 8, 4]
+    num_epochs = 30
     steps_per_epoch = 300
     batch_size = 256
     # specify whether to run training or only print preparatory steps

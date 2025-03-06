@@ -15,23 +15,18 @@ if __name__=='__main__':
     # common settings
     weaverdir = os.path.join(weavercoredir, 'weaver')
     # data config
-    #data_config = os.path.abspath('configs/data_config_hh4b_mh125_vs_bkg_pnet.yaml')
-    #data_config = os.path.abspath('configs/data_config_hh4b_multimh_vs_bkg_pnet.yaml')
-    #data_config = os.path.abspath('configs/data_config_hh4b_mh125_vs_bkg_pnet_noresampling.yaml')
-    data_config = os.path.abspath('configs/data_config_hh4b_multimh_vs_bkg_pnet_noresampling.yaml')
+    data_config = os.path.abspath('configs/data_config_hh4b_multimh_vs_bkg_pnet.yaml')
     # model config
     model_config = os.path.abspath('configs/model_pnet.py')
     # sample list for training data
-    #sample_config_train = os.path.abspath('configs/samples_hh4b_mh125_vs_bkg_allyears_training.yaml')
     sample_config_train = os.path.abspath('configs/samples_hh4b_multimh_vs_bkg_allyears_training.yaml')
     # sample list for testing data
-    #sample_config_test = os.path.abspath('configs/samples_hh4b_mh125_vs_bkg_allyears_testing.yaml')
     sample_config_test = os.path.abspath('configs/samples_hh4b_multimh_vs_bkg_allyears_testing.yaml')
     # output dir
-    outputdir = os.path.join(thisdir, 'output_test_multimh_noresampling')
+    outputdir = os.path.join(thisdir, 'output_resampling_2')
     # network settings
     num_epochs = 50
-    steps_per_epoch = 300
+    steps_per_epoch = 500
     batch_size = 256
     # specify whether to run training or only print preparatory steps
     do_training = True
@@ -39,7 +34,7 @@ if __name__=='__main__':
     runmode = 'slurm'
     #conda_activate = 'source /eos/user/l/llambrec/miniforge3/bin/activate'
     #conda_env = 'weaver'
-    slurmscript = 'sjob_weaver_2.sh'
+    slurmscript = 'sjob_weaver_resampling_2.sh'
     env_cmds = ([
         'source /blue/avery/llambre1.brown/miniforge3/bin/activate',
         'conda activate weaver',

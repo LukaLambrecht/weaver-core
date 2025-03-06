@@ -15,30 +15,30 @@ if __name__=='__main__':
     # common settings
     weaverdir = os.path.join(weavercoredir, 'weaver')
     # data config
-    data_config = os.path.abspath('configs/data_config_hh4b_mh125_vs_bkg_pnet_disco.yaml')
-    #data_config = os.path.abspath('configs/data_config_hh4b_multimh_vs_bkg_pnet_disco.yaml')
+    #data_config = os.path.abspath('configs/data_config_hh4b_mh125_vs_bkg_pnet_disco.yaml')
+    data_config = os.path.abspath('configs/data_config_hh4b_multimh_vs_bkg_pnet_disco.yaml')
     # model config
     model_config = os.path.abspath('configs/model_pnet_disco.py')
     # sample list for training data
-    sample_config_train = os.path.abspath('configs/samples_hh4b_mh125_vs_bkg_allyears_training.yaml')
-    #sample_config_train = os.path.abspath('configs/samples_hh4b_multimh_vs_bkg_allyears_training.yaml')
+    #sample_config_train = os.path.abspath('configs/samples_hh4b_mh125_vs_bkg_allyears_training.yaml')
+    sample_config_train = os.path.abspath('configs/samples_hh4b_multimh_vs_bkg_allyears_training.yaml')
     # sample list for testing data
-    sample_config_test = os.path.abspath('configs/samples_hh4b_mh125_vs_bkg_allyears_testing.yaml')
-    #sample_config_test = os.path.abspath('configs/samples_hh4b_multimh_vs_bkg_allyears_testing.yaml')
+    #sample_config_test = os.path.abspath('configs/samples_hh4b_mh125_vs_bkg_allyears_testing.yaml')
+    sample_config_test = os.path.abspath('configs/samples_hh4b_multimh_vs_bkg_allyears_testing.yaml')
     # output dir
-    outputdir = os.path.join(thisdir, 'output_test')
+    outputdir = os.path.join(thisdir, 'output_multimh_alpha_25')
     # network settings
     num_epochs = 50
-    steps_per_epoch = 300
+    steps_per_epoch = 500
     batch_size = 256
-    alpha = 500
+    alpha = 25
     # specify whether to run training or only print preparatory steps
     do_training = True
     # runmode and job settings
-    runmode = 'local'
+    runmode = 'slurm'
     #conda_activate = 'source /eos/user/l/llambrec/miniforge3/bin/activate'
     #conda_env = 'weaver'
-    slurmscript = 'sjob_weaver.sh'
+    slurmscript = 'sjob_weaver_multi_mh_alpha_25.sh'
     env_cmds = ([
         'source /blue/avery/llambre1.brown/miniforge3/bin/activate',
         'conda activate weaver',

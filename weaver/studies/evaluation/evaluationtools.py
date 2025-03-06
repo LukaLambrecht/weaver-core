@@ -11,7 +11,8 @@ from weaver.utils.disco import distance_correlation
 
 
 def get_scores_from_events(events, score_branch=None,
-        signal_branch=None, background_branch=None):
+        signal_branch=None, background_branch=None,
+        xsecweighting=False):
     ### get scores from an events array
 
     # format the scores
@@ -33,15 +34,21 @@ def get_scores_from_events(events, score_branch=None,
         labels = np.where(events[background_branch]==1, 0, 1)
     else: labels = None
 
+    # format weights
+    weights = np.ones(len(scores))
+    if xsecweighting:
+        weights = np.multiply(events['genWeight'], events['xsecWeight'])
+
     # mask the scores and labels
     # (i.e. remove entries that are neither signal nor background)
     if labels is not None:
         mask = (labels >= 0)
         scores = scores[mask]
         labels = labels[mask]
+        weights = weights[mask]
 
     # return the result
-    return (scores, labels)
+    return (scores, labels, weights)
 
 
 def get_discos_from_events(events, score_branch=None, variable_branches=None,
@@ -119,7 +126,8 @@ def get_discos_from_events(events, score_branch=None, variable_branches=None,
 
 
 def get_events_from_file(rootfile, treename=None,
-        signal_branches=None, background_branches=None, correlation_branches=None):
+        signal_branches=None, background_branches=None,
+        correlation_branches=None, weight_branches=None):
     ### get scores and auxiliary variables from a root file
 
     # open input file
@@ -127,12 +135,13 @@ def get_events_from_file(rootfile, treename=None,
     if treename is not None: fopen += f':{treename}'
     events = uproot.open(fopen)
 
-    # read branches as dict of arrays
+    # set branches to read
     score_branches = [b for b in events.keys() if b.startswith('score_')]
     if signal_branches is None: signal_branches = []
     if background_branches is None: background_branches = []
     if correlation_branches is None: correlation_branches = []
     branches_to_read = score_branches + signal_branches + background_branches + correlation_branches
+    if weight_branches is not None: branches_to_read += weight_branches
     branches_to_read = list(set(branches_to_read))
     events = events.arrays(branches_to_read, library='np')
 
