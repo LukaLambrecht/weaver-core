@@ -86,7 +86,8 @@ def _preprocess(table, data_config, options):
         table, data_config.selection if options['training'] else data_config.test_time_selection,
         funcs=data_config.var_funcs)
     if len(table) == 0:
-        return []
+        print('WARNING in utils/dataset.py/_preprocess: table after applying selections is empty.')
+        return [], []
     # define new variables
     aux_branches = data_config.train_aux_branches if options['training'] else data_config.test_aux_branches
     table = _build_new_variables(table, {k: v for k, v in data_config.var_funcs.items() if k in aux_branches})
