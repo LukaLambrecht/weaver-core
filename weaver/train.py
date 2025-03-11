@@ -18,6 +18,14 @@ from weaver.utils.dataset import SimpleIterDataset
 from weaver.utils.import_tools import import_module
 from weaver.utils.samplelisttools import read_sample_list
 
+# set pytorch sharing strategy to "file_system"
+# to avoid errors with too many open files.
+# (see e.g. here: https://github.com/pytorch/pytorch/issues/11201)
+import torch.multiprocessing
+torch.multiprocessing.set_sharing_strategy('file_system')
+
+
+# read command line args
 parser = argparse.ArgumentParser()
 parser.add_argument('--regression-mode', action='store_true', default=False,
                     help='run in regression mode if this flag is set; otherwise run in classification mode')
@@ -884,10 +892,12 @@ def _main(args):
     if training_mode:
         model = orig_model.to(dev)
 
-        # DistributedDataParallel
+        # convert model to DistributedDataParallel
         if args.backend is not None:
             model = torch.nn.SyncBatchNorm.convert_sync_batchnorm(model)
-            model = torch.nn.parallel.DistributedDataParallel(model, device_ids=gpus, output_device=local_rank, find_unused_parameters=True)
+            model = torch.nn.parallel.DistributedDataParallel(model,
+                      device_ids=gpus, output_device=local_rank,
+                      find_unused_parameters=True)
 
         # optimizer & learning rate
         opt, scheduler = optim(args, model, dev)
@@ -898,16 +908,18 @@ def _main(args):
                 # model becomes `torch.nn.DataParallel`,
                 # with model.module being the original `torch.nn.Module`
                 model = torch.nn.DataParallel(model, device_ids=gpus)
-            # model = model.to(dev)
+            #model = model.to(dev)
 
         # lr finder: keep it after all other setups
         if args.lr_finder is not None:
             start_lr, end_lr, num_iter = args.lr_finder.replace(' ', '').split(',')
             from weaver.utils.lr_finder import LRFinder
-            lr_finder = LRFinder(model, opt, loss_func, device=dev, input_names=train_input_names,
-                                 label_names=train_label_names)
-            lr_finder.range_test(train_loader, start_lr=float(start_lr), end_lr=float(end_lr), num_iter=int(num_iter))
-            lr_finder.plot(output='lr_finder.png')  # to inspect the loss-learning rate graph
+            lr_finder = LRFinder(model, opt, loss_func, device=dev,
+                          input_names=train_input_names,
+                          label_names=train_label_names)
+            lr_finder.range_test(train_loader, start_lr=float(start_lr),
+                    end_lr=float(end_lr), num_iter=int(num_iter))
+            lr_finder.plot(output='lr_finder.png')
             return
 
         # training loop
@@ -980,6 +992,18 @@ def _main(args):
         # delete data loaders used for training
         # and make data loaders for testing
         if training_mode:
+            # is simply doing 'del <data loader>' enough?
+            # or are additional steps needed, especially in the case of persistent workers?
+            # see e.g. here:
+            # https://discuss.pytorch.org/t/what-are-the-dis-advantages-of-persistent-workers/102110/10
+            # try the following:
+            try:
+                train_loader._iterator._shutdown_workers()
+                val_loader._iterator._shutdown_workers()
+                del train_loader._iterator
+                del val_loader._iterator
+            except:
+                print('WARNING: tried to shut down the training workers, but failed.')
             del train_loader, val_loader
             test_loaders, data_config = test_load(args)
 
@@ -1023,6 +1047,7 @@ def _main(args):
             del test_loader
 
             if args.predict_output:
+                # set and make output directory
                 if not os.path.dirname(args.predict_output):
                     predict_output = os.path.join(
                         os.path.dirname(args.model_prefix),
@@ -1030,11 +1055,13 @@ def _main(args):
                 else:
                     predict_output = args.predict_output
                 os.makedirs(os.path.dirname(predict_output), exist_ok=True)
+                # set output file
                 if name == '':
                     output_path = predict_output
                 else:
                     base, ext = os.path.splitext(predict_output)
                     output_path = base + '_' + name + ext
+                # save output
                 if output_path.endswith('.root'):
                     save_root(args, output_path, data_config, scores, labels, observers)
                 else:

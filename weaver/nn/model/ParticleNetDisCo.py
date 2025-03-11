@@ -2,7 +2,7 @@
 ParticleNet with DisCo
 
 Originally copied from nn/model/ParticleNet.py in this repository.
-Modified to include DisCo loss (WIP).
+Modified to include DisCo loss.
 '''
 
 import os
@@ -48,6 +48,11 @@ def get_graph_feature_v1(x, k, idx):
     '''
     (?)
     Note: v1 is faster on GPU
+    Input arguments:
+    - x: tensor of shape (batch size, number of coordinates, number of points).
+    - k: integer number of nearest neighbours to use.
+    - idx: tensor with indices of nearest neighbours, of shape (batch size, number of points, k).
+      (output of knn function, see above).
     '''
     batch_size, num_dims, num_points = x.size()
 
@@ -55,11 +60,15 @@ def get_graph_feature_v1(x, k, idx):
     idx = idx + idx_base
     idx = idx.view(-1)
 
-    fts = x.transpose(2, 1).reshape(-1, num_dims)  # -> (batch_size, num_points, num_dims) -> (batch_size*num_points, num_dims)
-    fts = fts[idx, :].view(batch_size, num_points, k, num_dims)  # neighbors: -> (batch_size*num_points*k, num_dims) -> ...
-    fts = fts.permute(0, 3, 1, 2).contiguous()  # (batch_size, num_dims, num_points, k)
+    fts = x.transpose(2, 1).reshape(-1, num_dims)
+    # -> (batch_size, num_points, num_dims) -> (batch_size*num_points, num_dims)
+    fts = fts[idx, :].view(batch_size, num_points, k, num_dims)
+    # neighbors: -> (batch_size*num_points*k, num_dims) -> ...
+    fts = fts.permute(0, 3, 1, 2).contiguous()
+    # (batch_size, num_dims, num_points, k)
     x = x.view(batch_size, num_dims, num_points, 1).repeat(1, 1, 1, k)
-    fts = torch.cat((x, fts - x), dim=1)  # ->(batch_size, 2*num_dims, num_points, k)
+    fts = torch.cat((x, fts - x), dim=1)
+    # -> (batch_size, 2*num_dims, num_points, k)
     return fts
 
 
@@ -67,6 +76,7 @@ def get_graph_feature_v2(x, k, idx):
     '''
     (?)
     Note: v2 is faster on CPU
+    Input arguments: same as v1
     '''
     batch_size, num_dims, num_points = x.size()
 
@@ -74,13 +84,15 @@ def get_graph_feature_v2(x, k, idx):
     idx = idx + idx_base
     idx = idx.view(-1)
 
-    fts = x.transpose(0, 1).reshape(num_dims, -1)  # -> (num_dims, batch_size, num_points) -> (num_dims, batch_size*num_points)
-    fts = fts[:, idx].view(num_dims, batch_size, num_points, k)  # neighbors: -> (num_dims, batch_size*num_points*k) -> ...
-    fts = fts.transpose(1, 0).contiguous()  # (batch_size, num_dims, num_points, k)
-
+    fts = x.transpose(0, 1).reshape(num_dims, -1)
+    # -> (num_dims, batch_size, num_points) -> (num_dims, batch_size*num_points)
+    fts = fts[:, idx].view(num_dims, batch_size, num_points, k)
+    # neighbors: -> (num_dims, batch_size*num_points*k) -> ...
+    fts = fts.transpose(1, 0).contiguous()
+    # (batch_size, num_dims, num_points, k)
     x = x.view(batch_size, num_dims, num_points, 1).repeat(1, 1, 1, k)
-    fts = torch.cat((x, fts - x), dim=1)  # ->(batch_size, 2*num_dims, num_points, k)
-
+    fts = torch.cat((x, fts - x), dim=1)
+    # -> (batch_size, 2*num_dims, num_points, k)
     return fts
 
 
@@ -142,10 +154,8 @@ class EdgeConvBlock(nn.Module):
 
         for conv, bn, act in zip(self.convs, self.bns, self.acts):
             x = conv(x)  # (N, C', P, K)
-            if bn:
-                x = bn(x)
-            if act:
-                x = act(x)
+            if bn: x = bn(x)
+            if act: x = act(x)
 
         fts = x.mean(dim=-1)  # (N, C, P)
 
@@ -252,7 +262,7 @@ class ParticleNetDisCo(nn.Module):
         coord_shift = (mask == 0) * 1e9
         if self.use_counts:
             counts = mask.float().sum(dim=-1)
-            counts = torch.max(counts, torch.ones_like(counts))  # >=1
+            counts = torch.max(counts, torch.ones_like(counts))
 
         if self.use_fts_bn:
             fts = self.bn_fts(features) * mask
@@ -267,13 +277,10 @@ class ParticleNetDisCo(nn.Module):
         if self.use_fusion:
             fts = self.fusion_block(torch.cat(outputs, dim=1)) * mask
         
-        if self.for_segmentation:
-            x = fts
+        if self.for_segmentation: x = fts
         else:
-            if self.use_counts:
-                x = fts.sum(dim=-1) / counts  # divide by the real counts
-            else:
-                x = fts.mean(dim=-1)
+            if self.use_counts: x = fts.sum(dim=-1) / counts
+            else: x = fts.mean(dim=-1)
 
         output = self.fc(x)
         if self.for_inference:
