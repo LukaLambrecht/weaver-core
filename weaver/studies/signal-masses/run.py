@@ -23,10 +23,10 @@ if __name__=='__main__':
     # sample list for testing data
     sample_config_test = os.path.abspath('configs/samples_hh4b_multimh_vs_bkg_allyears_testing.yaml')
     # output dir
-    outputdir = os.path.join(thisdir, 'output_resampling_2')
+    outputdir = os.path.join(thisdir, 'output_test')
     # network settings
-    num_epochs = 50
-    steps_per_epoch = 500
+    num_epochs = 30
+    steps_per_epoch = 300
     batch_size = 256
     # specify whether to run training or only print preparatory steps
     do_training = True
@@ -34,7 +34,7 @@ if __name__=='__main__':
     runmode = 'slurm'
     #conda_activate = 'source /eos/user/l/llambrec/miniforge3/bin/activate'
     #conda_env = 'weaver'
-    slurmscript = 'sjob_weaver_resampling_2.sh'
+    slurmscript = 'sjob_weaver.sh'
     env_cmds = ([
         'source /blue/avery/llambre1.brown/miniforge3/bin/activate',
         'conda activate weaver',
@@ -104,4 +104,5 @@ if __name__=='__main__':
         job_name = os.path.splitext(slurmscript)[0]
         st.submitCommandAsSlurmJob(cmd, script=slurmscript,
                 job_name=job_name, env_cmds=env_cmds,
+                memory='8G',
                 time='05:00:00')

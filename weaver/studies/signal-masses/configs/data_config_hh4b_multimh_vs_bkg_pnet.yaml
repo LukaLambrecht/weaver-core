@@ -7,24 +7,24 @@ treename: Events
 
 selection:
     # Define the selection for the training set
-    ( (n_ak4>=3)
-    & (n_ak4_btags_M>=2)
-    & (alljets_ht>300)
+    ( (n_ak4 >= 4)
+    & (dHH_NbtagM >= 3)
+    & (dHH_HH_mass > 350)
     & (passmetfilters == 1)
     & (passjetvetomap == 1)
-    & (avgbdisc_twoldgbdiscjets > 0.68)
-    & (hh_average_mass > 50.)
+    & (custom_Flag_ecalBadCalibFilter == 1)
+    & (avgbdisc_twoldgbdiscjets > 0.55)
     & (np.multiply(np.multiply(np.abs(genWeight), xsecWeight), lumiwgt) < 500) )
 
 test_time_selection:
     # Define the selection for the testing set
-    ( (n_ak4>=3)
-    & (n_ak4_btags_M>=2)
-    & (alljets_ht>300)
+    ( (n_ak4 >= 4)
+    & (dHH_NbtagM >= 3)
+    & (dHH_HH_mass > 350)
     & (passmetfilters == 1)
     & (passjetvetomap == 1)
-    & (avgbdisc_twoldgbdiscjets > 0.68)
-    & (hh_average_mass > 50.)
+    & (custom_Flag_ecalBadCalibFilter == 1)
+    & (avgbdisc_twoldgbdiscjets > 0.55)
     & (np.multiply(np.multiply(np.abs(genWeight), xsecWeight), lumiwgt) < 500) )
 
 file_magic:
@@ -126,6 +126,7 @@ observers:
   - dHH_H1_mass
   - dHH_H2_mass
   - hh_average_mass
+  - dHH_NbtagM
   - isHHto4b_mH_125
   - isSignal
   - isQCD
@@ -145,9 +146,10 @@ weights:
    reweight_load_fraction: 1.
    reweight_vars:
       hh_average_mass: [50., 75., 100., 125., 150., 175., 200., 225., 250., 30000.]
-      alljets_ht: [0., 30000.]
+      dHH_NbtagM: [2.5, 3.5, 4.5]
    #reweight_vars:
-      #hh_average_mass: [50., 30000.]
-      #alljets_ht: [0., 30000.]
+   #   hh_average_mass: [50., 30000.]
+   #   alljets_ht: [0., 30000.]
+   reweight_discard_under_overflow: false
    reweight_classes: [isHHto4b_mH_125, isHHto4b_mH_variations, isQCD, isTT]
-   class_weights: [0.5, 0.5, 1, 1]
+   class_weights: [1, 1, 1, 1]

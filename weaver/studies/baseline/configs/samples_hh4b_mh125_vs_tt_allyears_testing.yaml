@@ -1,5 +1,5 @@
 # signal samples
-- /blue/avery/llambre1.brown/hhto4b-samples/ntuples-v2/ntuples_*_0L/mc/pieces/HHto4b_mH_125_powheg_pythia8_Run3_*_v2_1_tree.root
+- /blue/avery/llambre1.brown/hhto4b-samples/ntuples-sig-part2/ntuples_*_0L/mc/pieces/HHto4b_mH_125_*.root
 
 # tt samples
 - /blue/avery/llambre1.brown/hhto4b-samples/ntuples-bkg/ntuples_*_TT/TTto*_tree_testing_*.root

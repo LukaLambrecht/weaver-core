@@ -36,13 +36,13 @@ if __name__=='__main__':
     outputdir = os.path.join(thisdir, 'output_test')
     # network settings
     #architecture = [16, 8, 4]
-    num_epochs = 30
-    steps_per_epoch = 300
+    num_epochs = 1 # 30
+    steps_per_epoch = 10 # 300
     batch_size = 256
     # specify whether to run training or only print preparatory steps
     do_training = True
     # runmode and job settings
-    runmode = 'slurm'
+    runmode = 'local'
     #conda_activate = 'source /eos/user/l/llambrec/miniforge3/bin/activate'
     #conda_env = 'weaver'
     slurmscript = 'sjob_weaver.sh'

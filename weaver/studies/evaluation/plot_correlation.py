@@ -202,6 +202,9 @@ def plot_correlation_from_events(events,
             fig.savefig(figname)
             print(f'Saved figure {figname}.')
 
+    # close all figures
+    plt.close()
+
 
 if __name__=='__main__':
 

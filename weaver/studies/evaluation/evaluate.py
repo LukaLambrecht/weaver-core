@@ -31,14 +31,18 @@ if __name__=='__main__':
     args = parser.parse_args()
 
     # load events
-    correlation_branches = args.correlation_categories + args.correlation_variables
-    weight_branches = ['genWeight', 'xsecWeight'] if args.xsecweighting else None
+    branches_to_read = (
+        [score_branch]
+        + signal_categories
+        + background_categories
+        + correlation_categories
+        + correlation_variables
+    )
+    if xsecweighting:
+        branches_to_read += ['genWeight', 'xsecWeight']
     events = get_events_from_file(args.inputfile,
               treename = args.treename,
-              signal_branches = args.signal_categories,
-              background_branches = args.background_categories,
-              correlation_branches = correlation_branches,
-              weight_branches = weight_branches)
+              branches = branches_to_read)
     print('Read events file with following branches:')
     print(events.keys())
 
@@ -46,6 +50,8 @@ if __name__=='__main__':
     # for ROC plotting
     for signal_category in args.signal_categories:
         for background_category in args.background_categories:
+            print(f'Plotting ROC for signal {signal_category}'
+                    +' and background {background_category}...')
 
             # plot ROC
             plot_roc_from_events(events,

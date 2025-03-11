@@ -156,6 +156,9 @@ def plot_roc_from_scores(scores, labels,
         fig.savefig(figname)
         print(f'Saved figure {figname}.')
 
+    # close all figures
+    plt.close()
+
 
 if __name__=='__main__':
 

@@ -18,28 +18,28 @@ if __name__=='__main__':
     output_tag = 'test'
 
     configs = {
-      'qcd': {
-        'data': os.path.abspath('configs/data_config_hh4b_mh125_vs_qcd_mlp_jetvars.yaml'),
-        'train': os.path.abspath('configs/samples_hh4b_mh125_vs_qcd_allyears_training.yaml'),
-        'test': os.path.abspath('configs/samples_hh4b_mh125_vs_qcd_allyears_testing.yaml'),
-        'model': os.path.abspath('configs/model_mlp.py')
-      },
-      'tt': {
-        'data': os.path.abspath('configs/data_config_hh4b_mh125_vs_tt_mlp_jetvars.yaml'),
-        'train': os.path.abspath('configs/samples_hh4b_mh125_vs_tt_allyears_training.yaml'),
-        'test': os.path.abspath('configs/samples_hh4b_mh125_vs_tt_allyears_testing.yaml'),
-        'model': os.path.abspath('configs/model_mlp.py')
-      },
-      'bkg': {
-        'data': os.path.abspath('configs/data_config_hh4b_mh125_vs_bkg_mlp_jetvars.yaml'),
-        'train': os.path.abspath('configs/samples_hh4b_mh125_vs_bkg_allyears_training.yaml'),
-        'test': os.path.abspath('configs/samples_hh4b_mh125_vs_bkg_allyears_testing.yaml'),
-        'model': os.path.abspath('configs/model_mlp.py')
-      },
+    #  'qcd': {
+    #    'data': os.path.abspath('configs/data_config_hh4b_mh125_vs_qcd_mlp_jetvars.yaml'),
+    #    'train': os.path.abspath('configs/samples_hh4b_mh125_vs_qcd_allyears_training.yaml'),
+    #    'test': os.path.abspath('configs/samples_hh4b_mh125_vs_qcd_allyears_testing.yaml'),
+    #    'model': os.path.abspath('configs/model_mlp.py')
+    #  },
+    #  'tt': {
+    #    'data': os.path.abspath('configs/data_config_hh4b_mh125_vs_tt_mlp_jetvars.yaml'),
+    #    'train': os.path.abspath('configs/samples_hh4b_mh125_vs_tt_allyears_training.yaml'),
+    #    'test': os.path.abspath('configs/samples_hh4b_mh125_vs_tt_allyears_testing.yaml'),
+    #    'model': os.path.abspath('configs/model_mlp.py')
+    #  },
+    #  'bkg': {
+    #    'data': os.path.abspath('configs/data_config_hh4b_mh125_vs_bkg_mlp_jetvars.yaml'),
+    #    'train': os.path.abspath('configs/samples_hh4b_mh125_vs_bkg_allyears_training.yaml'),
+    #    'test': os.path.abspath('configs/samples_hh4b_mh125_vs_bkg_allyears_testing.yaml'),
+    #    'model': os.path.abspath('configs/model_mlp.py')
+    #  },
       'pnet': {
         'data': os.path.abspath('configs/data_config_hh4b_mh125_vs_bkg_pnet.yaml'),
         'train': os.path.abspath('configs/samples_hh4b_mh125_vs_bkg_allyears_training.yaml'),
-        'test': os.path.abspath('configs/samples_hh4b_mh125_vs_qcd_allyears_testing.yaml'),
+        'test': os.path.abspath('configs/samples_hh4b_mh125_vs_bkg_allyears_testing.yaml'),
         'model': os.path.abspath('configs/model_pnet.py')
       }
     }

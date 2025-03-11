@@ -62,9 +62,9 @@ def get_discos_from_events(events, score_branch=None, variable_branches=None,
     # get scores
     # note: if mask_branch is None, the returned labels are None,
     #       and no masking will be performed.
-    (scores, labels) = get_scores_from_events(events,
-                         score_branch=score_branch,
-                         signal_branch=mask_branch)
+    (scores, labels, weights) = get_scores_from_events(events,
+                                  score_branch=score_branch,
+                                  signal_branch=mask_branch)
     if mask_branch is not None:
         mask = (labels == 1).astype(bool)
 
@@ -125,9 +125,7 @@ def get_discos_from_events(events, score_branch=None, variable_branches=None,
     return dccoeffs
 
 
-def get_events_from_file(rootfile, treename=None,
-        signal_branches=None, background_branches=None,
-        correlation_branches=None, weight_branches=None):
+def get_events_from_file(rootfile, treename=None, branches=None):
     ### get scores and auxiliary variables from a root file
 
     # open input file
@@ -136,14 +134,7 @@ def get_events_from_file(rootfile, treename=None,
     events = uproot.open(fopen)
 
     # set branches to read
-    score_branches = [b for b in events.keys() if b.startswith('score_')]
-    if signal_branches is None: signal_branches = []
-    if background_branches is None: background_branches = []
-    if correlation_branches is None: correlation_branches = []
-    branches_to_read = score_branches + signal_branches + background_branches + correlation_branches
-    if weight_branches is not None: branches_to_read += weight_branches
-    branches_to_read = list(set(branches_to_read))
-    events = events.arrays(branches_to_read, library='np')
+    events = events.arrays(branches, library='np')
 
     # return the events array
     return events

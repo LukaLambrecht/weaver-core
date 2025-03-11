@@ -80,6 +80,7 @@ observers:
   - dHH_H1_mass
   - dHH_H2_mass
   - hh_average_mass
+  - dHH_NbtagM
   - isHHto4b_mH_125
   - isQCD
   - isTT
@@ -101,5 +102,6 @@ weights:
    #reweight_vars:
    #   hh_average_mass: [0., 30000.]
    #   alljets_ht: [0., 30000.]
+   reweight_discard_under_overflow: false
    reweight_classes: [isSignal, isQCD, isTT]
    class_weights: [1, 1, 1]
