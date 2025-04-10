@@ -130,6 +130,7 @@ observers:
   # to make post-training conclusions.
   - dHH_H1_mass
   - dHH_H2_mass
+  - dHH_HH_mass
   - hh_average_mass
   - dHH_NbtagM
   - isHHto4b_mH_125

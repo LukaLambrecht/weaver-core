@@ -31,9 +31,10 @@ if __name__=='__main__':
     correlation_variables = [
             'dHH_H1_mass',
             'dHH_H2_mass',
+            'dHH_HH_mass',
             'hh_average_mass'
     ]
-    correlation_slices = [0, 0.5, 1]
+    correlation_slices = [0, 0.3, 0.7, 1]
     phase_space_split = {
       'all': {},
       '3M': {'dHH_NbtagM': [2.5, 3.5]},

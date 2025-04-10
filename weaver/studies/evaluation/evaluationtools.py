@@ -3,12 +3,6 @@ import sys
 import uproot
 import numpy as np
 
-thisdir = os.path.abspath(os.path.dirname(__file__))
-weavercoredir = os.path.abspath(os.path.join(thisdir, '../../../'))
-sys.path.append(weavercoredir)
-
-from weaver.utils.disco import distance_correlation
-
 
 def get_scores_from_events(events, score_branch=None,
         signal_branch=None, background_branch=None,
@@ -54,6 +48,12 @@ def get_scores_from_events(events, score_branch=None,
 def get_discos_from_events(events, score_branch=None, variable_branches=None,
         npoints=1000, niterations=1, mask_branch=None):
     ### get distance correlation coefficient from events
+
+    # import distance correlation function
+    thisdir = os.path.abspath(os.path.dirname(__file__))
+    weaverdir = os.path.abspath(os.path.join(thisdir, '../../'))
+    sys.path.append(weaverdir)
+    from utils.disco import distance_correlation
 
     # check arguments
     if score_branch is None: raise Exception('Must provide a score branch.')

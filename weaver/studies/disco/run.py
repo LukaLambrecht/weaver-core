@@ -16,12 +16,12 @@ if __name__=='__main__':
     weaverdir = os.path.join(weavercoredir, 'weaver')
     # data config
     #data_config = os.path.abspath('configs/data_config_hh4b_mh125_vs_bkg_pnet_disco.yaml')
-    #data_config = os.path.abspath('configs/data_config_hh4b_multimh_vs_bkg_pnet_disco.yaml')
+    data_config = os.path.abspath('configs/data_config_hh4b_multimh_vs_bkg_pnet_disco.yaml')
     #data_config = os.path.abspath('configs/data_config_hh4b_mh125_vs_bkg_part_disco.yaml')
-    data_config = os.path.abspath('configs/data_config_hh4b_multimh_vs_bkg_part_disco.yaml')
+    #data_config = os.path.abspath('configs/data_config_hh4b_multimh_vs_bkg_part_disco.yaml')
     # model config
-    #model_config = os.path.abspath('configs/model_pnet_disco.py')
-    model_config = os.path.abspath('configs/model_part_disco.py')
+    model_config = os.path.abspath('configs/model_pnet_disco.py')
+    #model_config = os.path.abspath('configs/model_part_disco.py')
     # sample list for training data
     #sample_config_train = os.path.abspath('configs/samples_hh4b_mh125_vs_bkg_allyears_training.yaml')
     sample_config_train = os.path.abspath('configs/samples_hh4b_multimh_vs_bkg_allyears_training.yaml')
@@ -29,9 +29,9 @@ if __name__=='__main__':
     #sample_config_test = os.path.abspath('configs/samples_hh4b_mh125_vs_bkg_allyears_testing.yaml')
     sample_config_test = os.path.abspath('configs/samples_hh4b_multimh_vs_bkg_allyears_testing.yaml')
     # output dir
-    outputdir = os.path.join(thisdir, 'output_multimh_part')
+    outputdir = os.path.join(thisdir, 'output_multimh_pnet_plotsforloukas')
     # set alpha range
-    alphas = [0, 1, 2, 3, 4, 5, 10, 20, 50, 100]
+    alphas = [0, 5, 10, 50, 100, 200, 500]
     # network settings
     num_epochs = 50
     steps_per_epoch = 500
