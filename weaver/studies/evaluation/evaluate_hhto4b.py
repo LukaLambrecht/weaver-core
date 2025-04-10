@@ -27,7 +27,7 @@ if __name__=='__main__':
     xsecweighting = True
     signal_categories = ['isSignal']
     background_categories = ['isQCD', 'isTT']
-    correlation_categories = ['isQCD', 'isTT']
+    correlation_categories = ['isQCD', 'isTT', 'isSignal']
     correlation_variables = [
             'dHH_H1_mass',
             'dHH_H2_mass',

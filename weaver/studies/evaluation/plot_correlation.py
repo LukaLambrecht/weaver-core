@@ -129,7 +129,14 @@ def plot_correlation_from_events(events,
                 cscores = cscores[mask]
                 cweights = cweights[mask]
             score_bins = np.linspace(np.amin(cscores), np.amax(cscores), num=101)
-            var_bins = np.linspace(0, 400, num=41) # ad hoc hardcoded...
+            # set bins (ad-hoc hardcoded...)
+            if 'H1_mass' in varname or 'H2_mass' in varname or 'hh_average_mass' in varname:
+                var_bins = np.linspace(0, 400, num=41)
+            elif 'HH_mass' in varname:
+                var_bins = np.linspace(350, 1000, num=51)
+            else:
+                print(f'WARNING: no binning defined for variable {varname}')
+                var_bins = np.linspace(0, 1, num=11)
             hist = np.histogram2d(cscores, cvar, weights=cweights, bins=(score_bins, var_bins))[0]
             hist /= np.amax(hist)
             fig, ax = plt.subplots()
@@ -172,8 +179,14 @@ def plot_correlation_from_events(events,
 
             # make a plot
             fig, ax = plt.subplots()
-            #bins = np.histogram(events[varname], bins=20)[1]
-            bins = np.linspace(0, 400, num=41) # ad hoc hardcoded...
+            # set bins (ad-hoc hardcoded...)
+            if 'H1_mass' in varname or 'H2_mass' in varname or 'hh_average_mass' in varname:
+                bins = np.linspace(0, 400, num=41)
+            elif 'HH_mass' in varname:
+                bins = np.linspace(350, 1000, num=51)
+            else:
+                print(f'WARNING: no binning defined for variable {varname}')
+                bins = np.linspace(0, 1, num=11)
             cmap = plt.get_cmap('cool', len(slices))
             for idx, (cslice, clabel) in enumerate(zip(slices, labels)):
                 hist = np.histogram(cslice[0], bins=bins, weights=cslice[1])[0]
