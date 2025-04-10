@@ -91,14 +91,12 @@ preprocess:
 
 inputs:
    # Define input features to the network
-   jet_vectors:
+   jet_points:
       length: 6
       pad_mode: wrap
       vars:
-         - [ak4_px, null]
-         - [ak4_py, null]
-         - [ak4_pz, null]
-         - [ak4_energy, null]
+         - [ak4_eta, null]
+         - [ak4_phi, null]
    jet_features:
       length: 6
       pad_mode: wrap
@@ -110,6 +108,14 @@ inputs:
          - [ak4_btag_L, null]
          - [ak4_btag_M, null]
          - [ak4_btag_T, null]
+   jet_vectors:
+      length: 6
+      pad_mode: wrap
+      vars:
+         - [ak4_px, null]
+         - [ak4_py, null]
+         - [ak4_pz, null]
+         - [ak4_energy, null]
    jet_mask:
       length: 6
       pad_mode: constant

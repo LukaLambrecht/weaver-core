@@ -4,6 +4,7 @@ import os
 import sys
 import argparse
 import numpy as np
+import matplotlib.pyplot as plt
 
 thisdir = os.path.abspath(os.path.dirname(__file__))
 sys.path.append(thisdir)
@@ -86,7 +87,7 @@ if __name__=='__main__':
             for signal_category in signal_categories:
                 for background_category in background_categories:
                     print(f'    Plotting ROC for signal {signal_category}'
-                            +' and background {background_category}...')
+                            +f' and background {background_category}...')
 
                     # plot ROC
                     plot_roc_from_events(this_events,
@@ -96,9 +97,11 @@ if __name__=='__main__':
                         signal_branch = signal_category,
                         background_branch = background_category,
                         plot_score_dist = True, plot_roc = True)
+                    plt.close()
 
             # loop over categories for correlation plotting
             for category in correlation_categories:
+                print(f'    Plotting correlation for {category}')
 
                 # plot correlations
                 plot_correlation_from_events(this_events,
@@ -109,3 +112,4 @@ if __name__=='__main__':
                         variable_branches = correlation_variables,
                         calculate_disco = False, plot_correlation = True,
                         plot_correlation_slices = correlation_slices)
+                plt.close()

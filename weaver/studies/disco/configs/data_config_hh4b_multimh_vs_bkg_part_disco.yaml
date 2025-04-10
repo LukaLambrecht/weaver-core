@@ -70,6 +70,7 @@ new_variables:
     isHHto4b_mH_180: sample==180
     isHHto4b_mH_190: sample==190
     isHHto4b_mH_200: sample==200
+    isHHto4b: sample>10
     isHHto4b_mH_variations: ((sample>10) & (sample!=125))
     isQCD: sample==1
     isTT: sample==2
@@ -91,15 +92,13 @@ preprocess:
 
 inputs:
    # Define input features to the network
-   jet_vectors:
+   points:
       length: 6
       pad_mode: wrap
       vars:
-         - [ak4_px, null]
-         - [ak4_py, null]
-         - [ak4_pz, null]
-         - [ak4_energy, null]
-   jet_features:
+         - [ak4_eta, null]
+         - [ak4_phi, null]
+   features:
       length: 6
       pad_mode: wrap
       vars:
@@ -110,11 +109,25 @@ inputs:
          - [ak4_btag_L, null]
          - [ak4_btag_M, null]
          - [ak4_btag_T, null]
-   jet_mask:
+   vectors:
+      length: 6
+      pad_mode: wrap
+      vars:
+         - [ak4_px, null]
+         - [ak4_py, null]
+         - [ak4_pz, null]
+         - [ak4_energy, null]
+   mask:
       length: 6
       pad_mode: constant
       vars:
          - [ak4_mask, null]
+
+   decorrelate:
+      length: 1
+      vars:
+         - dHH_H1_mass
+         - dHH_H2_mass
 
 labels:
    type: simple
@@ -145,7 +158,6 @@ weights:
    reweight_threshold: 0
    reweight_load_fraction: 1.
    reweight_vars:
-      #hh_average_mass: [50., 75., 100., 125., 150., 175., 200., 225., 250., 30000.]
       dHH_H1_mass: [50., 75., 100., 125., 150., 175., 200., 225., 250., 30000.]
       dHH_H2_mass: [50., 75., 100., 125., 150., 175., 200., 225., 250., 30000.]
       dHH_NbtagM: [2.5, 3.5, 4.5]
@@ -153,5 +165,5 @@ weights:
    #   hh_average_mass: [50., 30000.]
    #   alljets_ht: [0., 30000.]
    reweight_discard_under_overflow: false
-   reweight_classes: [isHHto4b_mH_125, isHHto4b_mH_variations, isQCD, isTT]
-   class_weights: [1, 1, 1, 1]
+   reweight_classes: [isHHto4b, isQCD, isTT]
+   class_weights: [1, 1, 1]

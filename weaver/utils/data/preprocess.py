@@ -35,28 +35,48 @@ def _build_weights(table, data_config, reweight_hists=None):
     if data_config.use_precomputed_weights:
         return ak.to_numpy(table[data_config.weight_name])
     else:
-        x_var, y_var = data_config.reweight_branches
-        x_bins, y_bins = data_config.reweight_bins
+        # read reweighting variables and bins
+        if len(data_config.reweight_branches) == 2:
+            x_var, y_var = data_config.reweight_branches
+            x_bins, y_bins = data_config.reweight_bins
+            z_var = None
+            z_bins = None
+        elif len(data_config.reweight_branches) == 3:
+            x_var, y_var, z_var = data_config.reweight_branches
+            x_bins, y_bins, z_bins = data_config.reweight_bins
+
+        # make selection
         rwgt_sel = None
         if data_config.reweight_discard_under_overflow:
             rwgt_sel = (table[x_var] >= min(x_bins)) & (table[x_var] <= max(x_bins)) & \
                 (table[y_var] >= min(y_bins)) & (table[y_var] <= max(y_bins))
-        # init w/ wgt=0: events not belonging to any class in `reweight_classes` will get a weight of 0 at the end
+            if z_var is not None:
+                rwgt_sel = (rwgt_sel) & (table[z_var] >= min(z_bins)) & (table[z_var] <= max(z_bins))
+
+        # initialize weights and reweight hists
+        # (note: by initializing with 0, events not belonging to any class in `reweight_classes`
+        #  will get a weight of 0 at the end)
         wgt = np.zeros(len(table), dtype='float32')
         sum_evts = 0
         if reweight_hists is None:
             reweight_hists = data_config.reweight_hists
+
+        # build weights
         for label, hist in reweight_hists.items():
             pos = table[label] == 1
-            if rwgt_sel is not None:
-                pos = (pos & rwgt_sel)
+            if rwgt_sel is not None: pos = (pos & rwgt_sel)
             rwgt_x_vals = ak.to_numpy(table[x_var][pos])
             rwgt_y_vals = ak.to_numpy(table[y_var][pos])
             x_indices = np.clip(np.digitize(
                 rwgt_x_vals, x_bins) - 1, a_min=0, a_max=len(x_bins) - 2)
             y_indices = np.clip(np.digitize(
                 rwgt_y_vals, y_bins) - 1, a_min=0, a_max=len(y_bins) - 2)
-            wgt[pos] = hist[x_indices, y_indices]
+            if z_var is not None:
+                rwgt_z_vals = ak.to_numpy(table[z_var][pos])
+                z_indices = np.clip(np.digitize(
+                    rwgt_z_vals, z_bins) - 1, a_min=0, a_max=len(z_bins) - 2)
+            if z_var is None: wgt[pos] = hist[x_indices, y_indices]
+            else: wgt[pos] = hist[x_indices, y_indices, z_indices]
             sum_evts += np.sum(pos)
         if sum_evts != len(table):
             warn_n_times(
@@ -233,8 +253,21 @@ class WeightMaker(object):
         return table
 
     def make_weights(self, table):
-        x_var, y_var = self._data_config.reweight_branches
-        x_bins, y_bins = self._data_config.reweight_bins
+
+        # read variables and bins for reweighting
+        if len(self._data_config.reweight_branches) == 2:
+            x_var, y_var = self._data_config.reweight_branches
+            x_bins, y_bins = self._data_config.reweight_bins
+            z_var = None
+            z_bins = None
+        elif len(self._data_config.reweight_branches) == 3:
+            x_var, y_var, z_var = self._data_config.reweight_branches
+            x_bins, y_bins, z_bins = self._data_config.reweight_bins
+        else:
+            msg = 'Either 2 or 3 reweight variables must be provided.'
+            raise Exception(msg)
+
+        # clip under- and overflow
         if not self._data_config.reweight_discard_under_overflow:
             # clip variables to be within bin ranges
             x_min, x_max = min(x_bins), max(x_bins)
@@ -243,6 +276,10 @@ class WeightMaker(object):
             _logger.info(f'Clipping `{y_var}` to [{y_min}, {y_max}] to compute the shapes for reweighting.')
             table[x_var] = np.clip(table[x_var], min(x_bins), max(x_bins))
             table[y_var] = np.clip(table[y_var], min(y_bins), max(y_bins))
+            if z_var is not None:
+                z_min, z_max = min(z_bins), max(z_bins)
+                _logger.info(f'Clipping `{z_var}` to [{z_min}, {z_max}] to compute the shapes for reweighting.')
+                table[z_var] = np.clip(table[z_var], min(z_bins), max(z_bins))
 
         _logger.info('Using %d events to make weights', len(table))
 
@@ -255,12 +292,16 @@ class WeightMaker(object):
             pos = (table[label] == 1)
             x = ak.to_numpy(table[x_var][pos])
             y = ak.to_numpy(table[y_var][pos])
-            hist, _, _ = np.histogram2d(x, y, bins=self._data_config.reweight_bins)
+            variables = (x, y)
+            if z_var is not None:
+                z = ak.to_numpy(table[z_var][pos])
+                variables = (x, y, z)
+            hist, _ = np.histogramdd(variables, bins=self._data_config.reweight_bins)
             _logger.info('%s (unweighted):\n %s', label, str(hist.astype('int64')))
             sum_evts += hist.sum()
             if self._data_config.reweight_basewgt:
                 w = ak.to_numpy(table[self._data_config.basewgt_name][pos])
-                hist, _, _ = np.histogram2d(x, y, weights=w, bins=self._data_config.reweight_bins)
+                hist, _ = np.histogramdd((variables), weights=w, bins=self._data_config.reweight_bins)
                 _logger.info('%s (weighted):\n %s', label, str(hist.astype('float32')))
             raw_hists[label] = hist.astype('float32')
             result[label] = hist.astype('float32')
