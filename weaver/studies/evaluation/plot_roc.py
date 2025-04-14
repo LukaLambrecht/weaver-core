@@ -95,7 +95,7 @@ def plot_roc_from_scores(scores, labels,
         ax.stairs(hist_bkg/norm_bkg, edges=bins,
                   color='dodgerblue', label='Background', linewidth=3)
         ax.stairs((hist_bkg+staterrors_bkg)/norm_bkg, baseline=(hist_bkg-staterrors_bkg)/norm_bkg,
-                    color='dodgerblue', edges=bins, fill=True, alpha=0.3)
+                    color='dodgerblue', edges=bins, fill=True, alpha=0.1)
         # make histogram for sig
         hist_sig = np.histogram(scores_sig, bins=bins, weights=weights_sig)[0]
         norm_sig = np.sum( np.multiply(hist_sig, np.diff(bins) ) )
@@ -103,7 +103,7 @@ def plot_roc_from_scores(scores, labels,
         ax.stairs(hist_sig/norm_sig, edges=bins,
                   color='orange', label='Signal', linewidth=3)
         ax.stairs((hist_sig+staterrors_sig)/norm_sig, baseline=(hist_sig-staterrors_sig)/norm_sig,
-                    color='orange', edges=bins, fill=True, alpha=0.3)
+                    color='orange', edges=bins, fill=True, alpha=0.1)
         # other plot settings
         ax.set_xlabel('Classifier output score', fontsize=12)
         ax.set_ylabel('Events (normalized)', fontsize=12)
@@ -122,6 +122,7 @@ def plot_roc_from_scores(scores, labels,
         figname = figname.replace('.png', f'_log.png')
         fig.savefig(figname)
         print(f'Saved figure {figname}.')
+        plt.close()
 
     # calculate signal and background efficiency
     thresholds = np.linspace(np.amin(scores), np.amax(scores), num=100)
@@ -155,6 +156,7 @@ def plot_roc_from_scores(scores, labels,
         if outputtag is not None: figname = figname.replace('.png', f'_{outputtag}.png')
         fig.savefig(figname)
         print(f'Saved figure {figname}.')
+        plt.close()
 
     # close all figures
     plt.close()

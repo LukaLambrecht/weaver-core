@@ -94,7 +94,7 @@ def plot_correlation_from_events(events,
             print(msg)
 
         # make a plot of the correlation
-        if plot_correlation and outputdir is not None:
+        '''if plot_correlation and outputdir is not None:
             cvar = events[varname]
             cscores = scores
             cweights = weights # note: weights not used for now in scatter plot
@@ -117,7 +117,7 @@ def plot_correlation_from_events(events,
                 txt.set_bbox(dict(facecolor='white', alpha=0.5))
             figname = os.path.join(outputdir, f'correlation_{tag}_{varname}_scatter.png')
             fig.savefig(figname)
-            print(f'Saved figure {figname}.')
+            print(f'Saved figure {figname}.')'''
 
         # same as above but in 2D histogram format instead of scatter plot
         if plot_correlation and outputdir is not None:
@@ -157,6 +157,7 @@ def plot_correlation_from_events(events,
             figname = os.path.join(outputdir, f'correlation_{tag}_{varname}_hist.png')
             fig.savefig(figname)
             print(f'Saved figure {figname}.')
+            plt.close()
 
         # plot correlation variables in slices of the score
         if plot_correlation_slices is not None and outputdir is not None:
@@ -181,9 +182,9 @@ def plot_correlation_from_events(events,
             fig, ax = plt.subplots()
             # set bins (ad-hoc hardcoded...)
             if 'H1_mass' in varname or 'H2_mass' in varname or 'hh_average_mass' in varname:
-                bins = np.linspace(0, 400, num=41)
+                bins = np.linspace(50, 250, num=26)
             elif 'HH_mass' in varname:
-                bins = np.linspace(350, 1000, num=51)
+                bins = np.linspace(350, 1000, num=26)
             else:
                 print(f'WARNING: no binning defined for variable {varname}')
                 bins = np.linspace(0, 1, num=11)
@@ -195,7 +196,7 @@ def plot_correlation_from_events(events,
                 ax.stairs(hist/norm, edges=bins,
                   color=cmap(idx), label=clabel, linewidth=2)
                 ax.stairs((hist+staterrors)/norm, baseline=(hist-staterrors)/norm,
-                        color=cmap(idx), edges=bins, fill=True, alpha=0.3)
+                        color=cmap(idx), edges=bins, fill=True, alpha=0.15)
             ax.set_xlabel(varname, fontsize=12)
             ax.set_ylabel('Events (normalized)', fontsize=12)
             ax.set_title(f'Correlation between {varname} and classifier output score', fontsize=12)
@@ -214,6 +215,7 @@ def plot_correlation_from_events(events,
             figname = os.path.join(outputdir, f'correlation_{tag}_{varname}_slices.png')
             fig.savefig(figname)
             print(f'Saved figure {figname}.')
+            plt.close()
 
     # close all figures
     plt.close()
