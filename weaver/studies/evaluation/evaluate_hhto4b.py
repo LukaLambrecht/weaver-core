@@ -11,6 +11,7 @@ sys.path.append(thisdir)
 
 from evaluationtools import get_events_from_file
 from plot_roc import plot_roc_from_events
+from plot_roc_multi import plot_scores_multi, plot_roc_multi
 from plot_correlation import plot_correlation_from_events
 from plot_correlation_multi import plot_correlation_multi
 
@@ -133,13 +134,15 @@ if __name__=='__main__':
                         plot_correlation_slices = correlation_slices)
                 plt.close()'''
 
-            # plot correlation for multiple categories together
-            categories = {
+            # plot score distribution and ROC for multiple categories together
+            signal_categories = {
                 'HH': {
                     'branch': 'isSignal',
                     'color': 'red',
                     'label': r'HH $\rightarrow$ 4b'
-                },
+                }
+            }
+            background_categories = {
                 'QCD': {
                     'branch': 'isQCD',
                     'color': 'blue',
@@ -151,13 +154,28 @@ if __name__=='__main__':
                     'label': r't$\bar{t}$'
                 }
             }
+            all_categories = {**signal_categories, **background_categories}
+            plot_scores_multi(
+                this_events,
+                all_categories,
+                xsecweighting = xsecweighting,
+                outputdir = outputdir,
+                score_branch = score_branch)
+            plot_roc_multi(
+                this_events,
+                signal_categories,
+                background_categories,
+                xsecweighting = xsecweighting,
+                outputdir = outputdir,
+                score_branch = score_branch)
+
+            # plot correlation for multiple categories together
             plot_correlation_multi(
-                events,
-                categories,
+                this_events,
+                all_categories,
                 xsecweighting = xsecweighting,
                 outputdir = outputdir,
                 score_branch = score_branch,
                 score_bins = correlation_slices,
                 variables = correlation_variables)
             plt.close()
-
