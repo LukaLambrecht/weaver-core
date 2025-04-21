@@ -1,198 +1,199 @@
+# Plot score distribution and ROC for multiple processes
+
 import os
 import sys
 import argparse
 import numpy as np
+import matplotlib as mpl
 import matplotlib.pyplot as plt
 from sklearn.metrics import roc_auc_score
 
 thisdir = os.path.abspath(os.path.dirname(__file__))
 sys.path.append(thisdir)
 
-from evaluationtools import get_scores_from_events
 from evaluationtools import get_events_from_file
 
 
-def plot_roc_from_file(inputfile, treename=None,
-        signal_branch=None, background_branch=None,
-        xsecweighting=False, **kwargs):
-    ### calculate and plot ROC directly from an input file
+def plot_scores(events,
+            signal_categories,
+            background_categories,
+            xsecweighting = False,
+            outputdir = None,
+            score_branch = None):
 
-    # format the signal and background branch names
-    signal_branches = [signal_branch] if signal_branch is not None else []
-    background_branches = [background_branch] if background_branch is not None else []
+    # check arguments
+    if score_branch is None: raise Exception('Must provide a score branch.')
+    all_categories = {**signal_categories, **background_categories}
 
-    # format weight branch names
-    weight_branches = ['genWeight', 'xsecWeight'] if xsecweighting else None
+    # get scores
+    scores = events[score_branch]
 
-    # read events
-    events = get_events_from_file(inputfile, treename=treename,
-               signal_branches=signal_branches, background_branches=background_branches,
-               weight_branches=weight_branches)
+    # get weights
+    weights = np.ones(len(scores))
+    if xsecweighting:
+        weights = np.multiply(events['lumiwgt'], np.multiply(events['genWeight'], events['xsecWeight']))
 
-    # plot ROC from events
-    return plot_roc_from_events(events, signal_branch=signal_branch,
-            background_branch=background_branch,
-            xsecweighting=xsecweighting, **kwargs)
-
-
-def plot_roc_from_events(events,
-        score_branch=None, signal_branch=None, background_branch=None,
-        xsecweighting=False, **kwargs):
-    ### calculate and plot ROC from an events array
-
-    # format the score, signal, and background branch names
-    if score_branch is None:
-        raise Exception('A score branch must be specified.')
-    if signal_branch is None and background_branch is None:
-        raise Exception('A signal branch or a background branch (or both) must be specified.')
-
-    # get scores and labels
-    (scores, labels, weights) = get_scores_from_events(events,
-                                  score_branch=score_branch,
-                                  signal_branch=signal_branch,
-                                  background_branch=background_branch,
-                                  xsecweighting=xsecweighting)
-
-    # plot ROC from scores
-    outputtag = f'{signal_branch}_vs_{background_branch}'
-    return plot_roc_from_scores(scores, labels, weights=weights, outputtag=outputtag, **kwargs)
-
-
-def plot_roc_from_scores(scores, labels,
-             weights=None,
-             outputdir=None,
-             outputtag=None,
-             plot_score_dist=False,
-             plot_roc=False):
-
-    # separate scores into signal and background scores
-    scores_sig = scores[labels==1]
-    scores_bkg = scores[labels==0]
-    if weights is None: weights = np.ones(len(scores))
-    weights_sig = weights[labels==1]
-    weights_bkg = weights[labels==0]
+    # get mask for each category
+    masks = {}
+    for category_name, category_settings in all_categories.items():
+        branch = category_settings['branch']
+        mask = events[branch].astype(bool)
+        masks[category_name] = mask
 
     # make output directory
     if outputdir is not None:
         if not os.path.exists(outputdir): os.makedirs(outputdir)
 
-    # calculate AUC
-    print('Calculating AUC (ROC)...')
-    # note: the function below cannot handle negative weights,
-    #       so take absolute value)
-    auc = roc_auc_score(labels, scores, sample_weight=np.abs(weights))
-    print('AUC (ROC) on testing set: {:.3f}'.format(auc))
+    # loop over pairs of categories
+    for signal_category_name, signal_category_settings in signal_categories.items():
+        for background_category_name, background_category_settings in background_categories.items():
 
-    # make a plot of the score distribution
-    if plot_score_dist and outputdir is not None:
-        print('Making output score distribution...')
-        fig, ax = plt.subplots()
-        bins = np.linspace(np.amin(scores_bkg), np.amax(scores_sig), num=50)
-        # make histogram for bkg
-        hist_bkg = np.histogram(scores_bkg, bins=bins, weights=weights_bkg)[0]
-        norm_bkg = np.sum( np.multiply(hist_bkg, np.diff(bins) ) )
-        staterrors_bkg = np.sqrt(np.histogram(scores_bkg, bins=bins, weights=np.square(weights_bkg))[0])
-        ax.stairs(hist_bkg/norm_bkg, edges=bins,
-                  color='dodgerblue', label='Background', linewidth=3)
-        ax.stairs((hist_bkg+staterrors_bkg)/norm_bkg, baseline=(hist_bkg-staterrors_bkg)/norm_bkg,
-                    color='dodgerblue', edges=bins, fill=True, alpha=0.1)
-        # make histogram for sig
-        hist_sig = np.histogram(scores_sig, bins=bins, weights=weights_sig)[0]
-        norm_sig = np.sum( np.multiply(hist_sig, np.diff(bins) ) )
-        staterrors_sig = np.sqrt(np.histogram(scores_sig, bins=bins, weights=np.square(weights_sig))[0])
-        ax.stairs(hist_sig/norm_sig, edges=bins,
-                  color='orange', label='Signal', linewidth=3)
-        ax.stairs((hist_sig+staterrors_sig)/norm_sig, baseline=(hist_sig-staterrors_sig)/norm_sig,
-                    color='orange', edges=bins, fill=True, alpha=0.1)
-        # other plot settings
-        ax.set_xlabel('Classifier output score', fontsize=12)
-        ax.set_ylabel('Events (normalized)', fontsize=12)
-        ax.set_title('Classifier output scores for sig and bkg', fontsize=12)
-        ax.text(0.95, 0.8, 'AUC: {:.3f}'.format(auc), fontsize=12,
-          ha='right', va='top', transform=ax.transAxes)
-        if outputtag is not None:
-            ax.text(0.95, 0.7, outputtag, fontsize=12,
-            ha='right', va='top', transform=ax.transAxes)
-        leg = ax.legend()
-        figname = os.path.join(outputdir, 'scores.png')
-        if outputtag is not None: figname = figname.replace('.png', f'_{outputtag}.png')
-        fig.savefig(figname)
-        print(f'Saved figure {figname}.')
-        ax.set_yscale('log')
-        figname = figname.replace('.png', f'_log.png')
-        fig.savefig(figname)
-        print(f'Saved figure {figname}.')
-        plt.close()
+                # get scores for signal and background
+                scores_sig = scores[masks[signal_category_name]]
+                weights_sig = weights[masks[signal_category_name]]
+                scores_bkg = scores[masks[background_category_name]]
+                weights_bkg = weights[masks[background_category_name]]
 
-    # calculate signal and background efficiency
-    thresholds = np.linspace(np.amin(scores), np.amax(scores), num=100)
-    efficiency_sig = np.zeros(len(thresholds))
-    efficiency_bkg = np.zeros(len(thresholds))
-    for idx, threshold in enumerate(thresholds):
-        eff_s = np.sum(weights_sig[scores_sig > threshold])
-        efficiency_sig[idx] = eff_s
-        eff_b = np.sum(weights_bkg[scores_bkg > threshold])
-        efficiency_bkg[idx] = eff_b
-    efficiency_sig /= np.sum(weights_sig)
-    efficiency_bkg /= np.sum(weights_bkg)
+                # calculate AUC
+                # note: the function below cannot handle negative weights,
+                #       so take absolute value)
+                this_scores = np.concatenate((scores_sig, scores_bkg))
+                this_weights = np.concatenate((weights_sig, weights_bkg))
+                this_labels = np.concatenate((np.ones(len(scores_sig)), np.zeros(len(scores_bkg))))
+                auc = roc_auc_score(this_labels, this_scores, sample_weight=np.abs(this_weights))
 
-    # make a plot of the ROC curve
-    if plot_roc and outputdir is not None:
-        print('Making output score distribution...')
-        fig, ax = plt.subplots()
-        ax.plot(efficiency_bkg, efficiency_sig,
-          color='dodgerblue', linewidth=3, label='ROC')
-        ax.plot(efficiency_bkg, efficiency_bkg,
-          color='darkblue', linewidth=3, linestyle='--', label='Baseline')
-        ax.set_xlabel('Background pass-through', fontsize=12)
-        ax.set_ylabel('Signal efficiency', fontsize=12)
-        ax.text(0.95, 0.3, 'AUC: {:.3f}'.format(auc), fontsize=12,
-          ha='right', va='bottom', transform=ax.transAxes)
-        if outputtag is not None:
-            ax.text(0.95, 0.2, outputtag, fontsize=12,
-            ha='right', va='top', transform=ax.transAxes)
-        leg = ax.legend()
-        figname = os.path.join(outputdir, 'roc.png')
-        if outputtag is not None: figname = figname.replace('.png', f'_{outputtag}.png')
-        fig.savefig(figname)
-        print(f'Saved figure {figname}.')
-        plt.close()
+                # make histograms
+                fig, ax = plt.subplots()
+                bins = np.linspace(np.amin(this_scores), np.amax(this_scores), num=51)
+                hist_sig = np.histogram(scores_sig, bins=bins, weights=weights_sig)[0]
+                norm_sig = np.sum( np.multiply(hist_sig, np.diff(bins) ) )
+                staterrors_sig = np.sqrt(np.histogram(scores_sig, bins=bins,
+                    weights=np.square(weights_sig))[0])
+                ax.stairs(hist_sig/norm_sig, edges=bins,
+                  color = signal_category_settings['color'],
+                  label = signal_category_settings['label'],
+                  linewidth=2)
+                ax.stairs((hist_sig+staterrors_sig)/norm_sig,
+                        baseline=(hist_sig-staterrors_sig)/norm_sig,
+                        color = signal_category_settings['color'],
+                        edges=bins, fill=True, alpha=0.15)
+                hist_bkg = np.histogram(scores_bkg, bins=bins, weights=weights_bkg)[0]
+                norm_bkg = np.sum( np.multiply(hist_bkg, np.diff(bins) ) )
+                staterrors_bkg = np.sqrt(np.histogram(scores_bkg, bins=bins,
+                    weights=np.square(weights_bkg))[0])
+                ax.stairs(hist_bkg/norm_bkg, edges=bins,
+                  color = background_category_settings['color'],
+                  label = background_category_settings['label'],
+                  linewidth=2)
+                ax.stairs((hist_bkg+staterrors_bkg)/norm_bkg,
+                        baseline=(hist_bkg-staterrors_bkg)/norm_bkg,
+                        color = background_category_settings['color'],
+                        edges=bins, fill=True, alpha=0.15)
 
-    # close all figures
-    plt.close()
+                # plot aesthetics
+                ax.set_xlabel('Classifier output score', fontsize=12)
+                ax.set_ylabel('Events (normalized)', fontsize=12)
+                ax.set_title(f'Score distribution', fontsize=12)
+                txt = ax.text(0.95, 0.7, 'AUC: {:.2f}'.format(auc), fontsize=12,
+                        ha='right', va='top', transform=ax.transAxes)
+                txt.set_bbox(dict(facecolor='white', alpha=0.8))
+                leg = ax.legend(fontsize=10)
+                for lh in leg.legend_handles:
+                    lh.set_alpha(1)
+                    lh._sizes = [30]
+                fig.tight_layout()
+                figname = os.path.join(outputdir,
+                  f'scores_{signal_category_name}_vs_{background_category_name}.png')
+                fig.savefig(figname)
+                print(f'Saved figure {figname}.')
+    
+                # same with log scale
+                ax.set_yscale('log')
+                fig.tight_layout()
+                figname = os.path.join(outputdir,
+                  f'scores_{signal_category_name}_vs_{background_category_name}_log.png')
+                fig.savefig(figname)
+                print(f'Saved figure {figname}.')
+                plt.close()
 
 
-if __name__=='__main__':
+def plot_roc(events,
+            signal_categories,
+            background_categories,
+            xsecweighting = False,
+            outputdir = None,
+            score_branch = None):
 
-    # read command line args
-    parser = argparse.ArgumentParser()
-    parser.add_argument('-i', '--inputfile', required=True)
-    parser.add_argument('-y', '--score_branch', required=True)
-    parser.add_argument('-o', '--outputdir', default=None)
-    parser.add_argument('-t', '--treename', default=None)
-    parser.add_argument('-s', '--signal_categories', default=[], nargs='+')
-    parser.add_argument('-b', '--background_categories', default=[], nargs='+')
-    parser.add_argument('--plot_score_dist', default=False, action='store_true')
-    parser.add_argument('--plot_roc', default=False, action='store_true')
-    args = parser.parse_args()
+    # check arguments
+    if score_branch is None: raise Exception('Must provide a score branch.')
+    all_categories = {**signal_categories, **background_categories}
 
-    # load events
-    events = get_events_from_file(args.inputfile,
-              treename = args.treename,
-              signal_branches = args.signal_categories,
-              background_branches = args.background_categories)
+    # get scores
+    scores = events[score_branch]
 
-    # loop over signal and background categories
-    for signal_category in args.signal_categories:
-        for background_category in args.background_categories:
-            print(f'Now running on signal branch {signal_category}'
-                    + f' and background branch {background_category}...')
+    # get weights
+    weights = np.ones(len(scores))
+    if xsecweighting:
+        weights = np.multiply(events['lumiwgt'], np.multiply(events['genWeight'], events['xsecWeight']))
 
-            # plot ROC
-            plot_roc_from_events(events,
-                outputdir = args.outputdir,
-                score_branch = args.score_branch,
-                signal_branch = signal_category,
-                background_branch = background_category,
-                plot_score_dist = args.plot_score_dist,
-                plot_roc = args.plot_roc)
+    # get mask for each category
+    masks = {}
+    for category_name, category_settings in all_categories.items():
+        branch = category_settings['branch']
+        mask = events[branch].astype(bool)
+        masks[category_name] = mask
+
+    # make output directory
+    if outputdir is not None:
+        if not os.path.exists(outputdir): os.makedirs(outputdir)
+
+    # loop over pairs of categories
+    for signal_category_name, signal_category_settings in signal_categories.items():
+        for background_category_name, background_category_settings in background_categories.items():
+
+                # get scores for signal and background
+                scores_sig = scores[masks[signal_category_name]]
+                weights_sig = weights[masks[signal_category_name]]
+                scores_bkg = scores[masks[background_category_name]]
+                weights_bkg = weights[masks[background_category_name]]
+
+                # calculate AUC
+                # note: the function below cannot handle negative weights,
+                #       so take absolute value)
+                this_scores = np.concatenate((scores_sig, scores_bkg))
+                this_weights = np.concatenate((weights_sig, weights_bkg))
+                this_labels = np.concatenate((np.ones(len(scores_sig)), np.zeros(len(scores_bkg))))
+                auc = roc_auc_score(this_labels, this_scores, sample_weight=np.abs(this_weights))
+
+                # calculate signal and background efficiency
+                thresholds = np.linspace(np.amin(this_scores), np.amax(this_scores), num=100)
+                efficiency_sig = np.zeros(len(thresholds))
+                efficiency_bkg = np.zeros(len(thresholds))
+                for idx, threshold in enumerate(thresholds):
+                    eff_s = np.sum(weights_sig[scores_sig > threshold])
+                    efficiency_sig[idx] = eff_s
+                    eff_b = np.sum(weights_bkg[scores_bkg > threshold])
+                    efficiency_bkg[idx] = eff_b
+                efficiency_sig /= np.sum(weights_sig)
+                efficiency_bkg /= np.sum(weights_bkg)
+
+                # make a plot of the ROC curve
+                fig, ax = plt.subplots()
+                label = signal_category_settings['label'] + ' vs. '
+                label += background_category_settings['label']
+                label += ' (AUC: {:.2f})'.format(auc)
+                ax.plot(efficiency_bkg, efficiency_sig,
+                  color='dodgerblue', linewidth=3, label=label)
+    
+                # other plot settings
+                ax.plot(efficiency_bkg, efficiency_bkg,
+                  color='darkblue', linewidth=3, linestyle='--', label='Baseline')
+                ax.set_xlabel('Background pass-through', fontsize=12)
+                ax.set_ylabel('Signal efficiency', fontsize=12)
+                leg = ax.legend()
+                fig.tight_layout()
+                figname = os.path.join(outputdir,
+                  f'roc_{signal_category_name}_vs_{background_category_name}.png')
+                fig.savefig(figname)
+                print(f'Saved figure {figname}.')
+                plt.close()

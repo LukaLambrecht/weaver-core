@@ -15,30 +15,18 @@ if __name__=='__main__':
     # common settings
     weaverdir = os.path.join(weavercoredir, 'weaver')
     # data config
-    #data_config = os.path.abspath('configs/data_config_hh4b_mh125_vs_qcd_mlp_jetvars.yaml')
-    #data_config = os.path.abspath('configs/data_config_hh4b_mh125_vs_tt_mlp_jetvars.yaml')
-    #data_config = os.path.abspath('configs/data_config_hh4b_mh125_vs_bkg_mlp_jetvars.yaml')
-    #data_config = os.path.abspath('configs/data_config_hh4b_mh125_vs_bkg_pnet.yaml')
-    data_config = os.path.abspath('configs/data_config_hh4b_mh125_vs_bkg_part.yaml')
+    data_config = os.path.abspath('configs/data_config_hh4b_mh125_vs_bkg_pnet.yaml')
+    #data_config = os.path.abspath('configs/data_config_hh4b_mh125_vs_bkg_part.yaml')
     # model config
-    #model_config = os.path.abspath('configs/model_mlp.py')
-    #model_config = os.path.abspath('configs/model_pnet.py')
-    model_config = os.path.abspath('configs/model_part.py')
+    model_config = os.path.abspath('configs/model_pnet.py')
+    #model_config = os.path.abspath('configs/model_part.py')
     # sample list for training data
     sample_config_train = os.path.abspath('configs/samples_hh4b_mh125_vs_bkg_allyears_training.yaml')
-    #sample_config_train = os.path.abspath('configs/samples_hh4b_mh125_vs_qcd_allyears_training.yaml')
-    #sample_config_train = os.path.abspath('configs/samples_hh4b_mh125_vs_tt_allyears_training.yaml')
-    #sample_config_train = os.path.abspath('configs/samples_hh4b_mh125_vs_qcd400to600_allyears_training.yaml')
     # sample list for testing data
     sample_config_test = os.path.abspath('configs/samples_hh4b_mh125_vs_bkg_allyears_testing.yaml')
-    #sample_config_test = os.path.abspath('configs/samples_hh4b_mh125_vs_qcd_allyears_testing.yaml')
-    #sample_config_test = os.path.abspath('configs/samples_hh4b_mh125_vs_tt_allyears_testing.yaml')
-    #sample_config_test = os.path.abspath('configs/samples_hh4b_mh125_vs_qcd400to600_allyears_testing.yaml')
     # output dir
-    outputdir = os.path.join(thisdir, 'output_test_part_fineresampling_mh1')
+    outputdir = os.path.join(thisdir, 'output_pnet_mh1mh2_coarsegrained')
     # network settings
-    architecture = None
-    #architecture = [16, 8, 4]
     num_epochs = 30
     steps_per_epoch = 300
     batch_size = 256
@@ -46,7 +34,14 @@ if __name__=='__main__':
     do_training = True
     # runmode and job settings
     runmode = 'slurm'
-    slurmscript = 'sjob_weaver_part.sh'
+    #conda_activate = 'source /eos/user/l/llambrec/miniforge3/bin/activate'
+    #conda_env = 'weaver'
+    slurmscript = 'sjob_weaver_pnet_mh1mh2_coarsegrained.sh'
+    env_cmds = ([
+        'source /blue/avery/llambre1.brown/miniforge3/bin/activate',
+        'conda activate weaver',
+        f'cd {thisdir}'
+    ])
 
     # check if all config files exist
     files_to_check = [data_config, model_config, sample_config_train, sample_config_test]
@@ -78,9 +73,6 @@ if __name__=='__main__':
     # set additional network options
     # (note: the specific model must support this!)
     network_kwargs = None
-    if architecture is not None:
-        arch_str = json.dumps(architecture).replace(' ','')
-        network_kwargs = f'architecture {arch_str}'
 
     # set output file for test results
     test_output = os.path.join(outputdir, 'output.root')
@@ -108,16 +100,9 @@ if __name__=='__main__':
         print(cmd)
         os.system(cmd)
     elif runmode=='condor':
-        conda_activate = 'source /eos/user/l/llambrec/miniforge3/bin/activate'
-        conda_env = 'weaver'
         ct.submitCommandAsCondorJob('cjob_weaver', cmd,
           jobflavour='workday', conda_activate=conda_activate, conda_env=conda_env)
     elif runmode=='slurm':
-        env_cmds = ([
-          'source /blue/avery/llambre1.brown/miniforge3/bin/activate',
-          'conda activate weaver',
-          f'cd {thisdir}'
-        ])
         job_name = os.path.splitext(slurmscript)[0]
         st.submitCommandAsSlurmJob(cmd, script=slurmscript,
                 job_name=job_name, env_cmds=env_cmds,

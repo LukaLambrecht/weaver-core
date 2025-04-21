@@ -78,6 +78,7 @@ def plot_scores_multi(events,
     
     # same with log scale
     ax.set_yscale('log')
+    fig.tight_layout()
     figname = os.path.join(outputdir, f'scores_multi_log.png')
     fig.savefig(figname)
     print(f'Saved figure {figname}.')
@@ -163,6 +164,7 @@ def plot_roc_multi(events,
     ax.set_xlabel('Background pass-through', fontsize=12)
     ax.set_ylabel('Signal efficiency', fontsize=12)
     leg = ax.legend()
+    fig.tight_layout()
     figname = os.path.join(outputdir, 'roc_multi.png')
     fig.savefig(figname)
     print(f'Saved figure {figname}.')

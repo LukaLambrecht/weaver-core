@@ -15,32 +15,26 @@ if __name__=='__main__':
     # common settings
     weaverdir = os.path.join(weavercoredir, 'weaver')
 
-    output_tag = 'test'
+    output_tag = '20250421'
 
     configs = {
-    #  'qcd': {
-    #    'data': os.path.abspath('configs/data_config_hh4b_mh125_vs_qcd_mlp_jetvars.yaml'),
-    #    'train': os.path.abspath('configs/samples_hh4b_mh125_vs_qcd_allyears_training.yaml'),
-    #    'test': os.path.abspath('configs/samples_hh4b_mh125_vs_qcd_allyears_testing.yaml'),
-    #    'model': os.path.abspath('configs/model_mlp.py')
-    #  },
-    #  'tt': {
-    #    'data': os.path.abspath('configs/data_config_hh4b_mh125_vs_tt_mlp_jetvars.yaml'),
-    #    'train': os.path.abspath('configs/samples_hh4b_mh125_vs_tt_allyears_training.yaml'),
-    #    'test': os.path.abspath('configs/samples_hh4b_mh125_vs_tt_allyears_testing.yaml'),
-    #    'model': os.path.abspath('configs/model_mlp.py')
-    #  },
-    #  'bkg': {
-    #    'data': os.path.abspath('configs/data_config_hh4b_mh125_vs_bkg_mlp_jetvars.yaml'),
-    #    'train': os.path.abspath('configs/samples_hh4b_mh125_vs_bkg_allyears_training.yaml'),
-    #    'test': os.path.abspath('configs/samples_hh4b_mh125_vs_bkg_allyears_testing.yaml'),
-    #    'model': os.path.abspath('configs/model_mlp.py')
-    #  },
+      'mlp': {
+        'data': os.path.abspath('configs/data_config_hh4b_mh125_vs_bkg_mlp_jetvars.yaml'),
+        'train': os.path.abspath('configs/samples_hh4b_mh125_vs_bkg_allyears_training.yaml'),
+        'test': os.path.abspath('configs/samples_hh4b_mh125_vs_bkg_allyears_testing.yaml'),
+        'model': os.path.abspath('configs/model_mlp.py')
+      },
       'pnet': {
         'data': os.path.abspath('configs/data_config_hh4b_mh125_vs_bkg_pnet.yaml'),
         'train': os.path.abspath('configs/samples_hh4b_mh125_vs_bkg_allyears_training.yaml'),
         'test': os.path.abspath('configs/samples_hh4b_mh125_vs_bkg_allyears_testing.yaml'),
         'model': os.path.abspath('configs/model_pnet.py')
+      },
+      'part': {
+        'data': os.path.abspath('configs/data_config_hh4b_mh125_vs_bkg_part.yaml'),
+        'train': os.path.abspath('configs/samples_hh4b_mh125_vs_bkg_allyears_training.yaml'),
+        'test': os.path.abspath('configs/samples_hh4b_mh125_vs_bkg_allyears_testing.yaml'),
+        'model': os.path.abspath('configs/model_part.py')
       }
     }
 
@@ -65,7 +59,7 @@ if __name__=='__main__':
         slurmscript = f'sjob_weaver_{output_tag}_{key}.sh'
         
         # network settings
-        architecture = [16, 8, 4] if config['model'].endswith('mpl.py') else None
+        architecture = [16, 8, 4] if config['model'].endswith('mlp.py') else None
 
         # check if all config files exist
         files_to_check = [data_config, model_config, sample_config_train, sample_config_test]
@@ -97,8 +91,9 @@ if __name__=='__main__':
         # set additional network options
         # (note: the specific model must support this!)
         network_kwargs = None
-        #arch_str = json.dumps(architecture).replace(' ','')
-        #network_kwargs = f'architecture {arch_str}'
+        if architecture is not None:
+            arch_str = json.dumps(architecture).replace(' ','')
+            network_kwargs = f'architecture {arch_str}'
 
         # set output file for test results
         test_output = os.path.join(outputdir, 'output.root')

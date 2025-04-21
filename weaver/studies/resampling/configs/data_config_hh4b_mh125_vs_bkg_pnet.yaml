@@ -58,9 +58,17 @@ preprocess:
 
 inputs:
    # Define input features to the network
-   input_features:
+   jet_vectors:
       length: 6
-      pad_mode: constant
+      pad_mode: wrap
+      vars:
+         - [ak4_px, null]
+         - [ak4_py, null]
+         - [ak4_pz, null]
+         - [ak4_energy, null]
+   jet_features:
+      length: 6
+      pad_mode: wrap
       vars:
          - [ak4_pt_log, 4, 1]
          - [ak4_energy_log, 4, 1]
@@ -69,6 +77,12 @@ inputs:
          - [ak4_btag_L, null]
          - [ak4_btag_M, null]
          - [ak4_btag_T, null]
+         - [ak4_btag_XT, null]
+   jet_mask:
+      length: 6
+      pad_mode: constant
+      vars:
+         - [ak4_mask, null]
 
 labels:
    type: simple
@@ -97,8 +111,9 @@ weights:
    reweight_threshold: 0
    reweight_load_fraction: 1.
    reweight_vars:
-      hh_average_mass: [0., 30000.]
-      alljets_ht: [0., 30000.]
+      dHH_H1_mass: [50., 75, 100., 125., 150., 200., 250., 30000.]
+      dHH_H2_mass: [50., 75, 100., 125., 150., 200., 250., 30000.]
+      dHH_NbtagM: [2.5, 3.5, 4.5]
    reweight_discard_under_overflow: false
    reweight_classes: [isSignal, isQCD, isTT]
    class_weights: [1, 1, 1]

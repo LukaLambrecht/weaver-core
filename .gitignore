@@ -2,6 +2,9 @@
 **output_*
 **results_*
 
+# Ignore slurm job logs
+**sjob_*
+
 # Default models dir
 weaver/models
 

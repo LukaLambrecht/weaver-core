@@ -55,6 +55,13 @@ def _finalize_inputs(table, data_config):
 
 
 def _get_reweight_indices(weights, up_sample=True, max_resample=10, weight_scale=1):
+    # Get indices according to a given weight distribution
+    # Input arguments:
+    # - weights: 1D array of weights (assumed to be between 0 and weight_scale (?))
+    # Each index in weights is selected with a probability weight/weight_scale.
+    # If up_sample is set tot True, selected indices are repeated
+    # until the total number of selected indices more or less matches the length of the input,
+    # or until max_resample is reached.
     all_indices = np.arange(len(weights))
     randwgt = np.random.uniform(low=0, high=weight_scale, size=len(weights))
     keep_flags = randwgt < weights
