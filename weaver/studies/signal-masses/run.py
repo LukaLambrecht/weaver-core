@@ -25,7 +25,7 @@ if __name__=='__main__':
     # sample list for testing data
     sample_config_test = os.path.abspath('configs/samples_hh4b_multimh_vs_bkg_allyears_testing.yaml')
     # output dir
-    outputdir = os.path.join(thisdir, 'output_test_part_mH1mH2reweighting')
+    outputdir = os.path.join(thisdir, 'output_part_resampling_mh1mh2_coarsegrained')
     # network settings
     num_epochs = 30
     steps_per_epoch = 300
@@ -36,7 +36,7 @@ if __name__=='__main__':
     runmode = 'slurm'
     #conda_activate = 'source /eos/user/l/llambrec/miniforge3/bin/activate'
     #conda_env = 'weaver'
-    slurmscript = 'sjob_weaver_part_mH1mH2reweighting.sh'
+    slurmscript = 'sjob_weaver_part_resampling_mh1mh2_coarsegrained.sh'
     env_cmds = ([
         'source /blue/avery/llambre1.brown/miniforge3/bin/activate',
         'conda activate weaver',
