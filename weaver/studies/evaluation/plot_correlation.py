@@ -8,8 +8,6 @@ import matplotlib.pyplot as plt
 thisdir = os.path.abspath(os.path.dirname(__file__))
 sys.path.append(thisdir)
 
-from evaluationtools import get_scores_from_events
-
 
 def plot_correlation(events,
                 categories,

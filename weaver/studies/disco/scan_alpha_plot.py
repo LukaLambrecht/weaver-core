@@ -10,7 +10,6 @@ thisdir = os.path.abspath(os.path.dirname(__file__))
 weavercoredir = os.path.abspath(os.path.join(thisdir, '../../../'))
 sys.path.append(weavercoredir)
 from weaver.studies.evaluation.evaluationtools import get_events_from_file
-from weaver.studies.evaluation.evaluationtools import get_scores_from_events
 from weaver.studies.evaluation.evaluationtools import get_discos_from_events
 
 
@@ -26,11 +25,54 @@ if __name__=='__main__':
     filename = 'output.root'
     treename = 'Events'
     score_branch = 'score_isSignal'
-    signal_categories = ['isSignal']
-    background_categories = ['isQCD', 'isTT']
-    correlation_categories = ['isQCD', 'isTT']
-    correlation_variables = ['dHH_H1_mass']
     xsecweighting = True
+    signal_categories = {
+        'HH': {
+            'branch': 'isSignal',
+            'color': 'red',
+            'label': r'HH $\rightarrow$ 4b'
+        }
+    }
+    background_categories = {
+        'QCD': {
+            'branch': 'isQCD',
+            'color': 'blue',
+            'label': 'QCD'
+        },
+        'TT': {
+            'branch': 'isTT',
+            'color': 'green',
+            'label': r't$\bar{t}$'
+        }
+    }
+    all_categories = {**signal_categories, **background_categories}
+    correlation_variables = {
+        'mH1': {
+            'branch': 'dHH_H1_mass',
+            'label': '$m(H_{1})$',
+        },
+        #'mH2': {
+        #    'branch': 'dHH_H2_mass',
+        #    'label': '$m(H_{2})$ [GeV]',
+        #},
+        #'mHH': {
+        #    'branch': 'dHH_HH_mass',
+        #    'label': '$m(HH)$ [GeV]',
+        #},
+        #'mHavg': {
+        #    'branch': 'hh_average_mass',
+        #    'label': '$m(H_{avg}) [GeV]$',
+        #}
+    }
+
+    # find all branches to read
+    branches_to_read = (
+        [score_branch]
+        + [cat['branch'] for cat in all_categories.values()]
+        + [v['branch'] for v in correlation_variables.values()]
+    )
+    if xsecweighting:
+        branches_to_read += ['lumiwgt', 'genWeight', 'xsecWeight']
 
     # handle case of provided input json file
     if args.resultdir.endswith('.json'):
@@ -64,50 +106,67 @@ if __name__=='__main__':
                 print('WARNING: {} does not exist, skipping.'.format(resultfile))
                 continue
 
-            # read events and scores from input file
-            branches_to_read = (
-              [score_branch]
-              + signal_categories
-              + background_categories
-              + correlation_categories
-              + correlation_variables
-            )
-            if xsecweighting:
-                branches_to_read += ['genWeight', 'xsecWeight']
+            # read events
             events = get_events_from_file(resultfile,
                        treename = treename,
                        branches = branches_to_read)
 
+            # get scores
+            scores = events[score_branch]
+            
+            # get weights
+            weights = np.ones(len(scores))
+            if xsecweighting:
+                weights = np.multiply(events['lumiwgt'],
+                            np.multiply(events['genWeight'], events['xsecWeight']))
+
+            # get mask for each category
+            masks = {}
+            for category_name, category_settings in all_categories.items():
+                branch = category_settings['branch']
+                mask = events[branch].astype(bool)
+                masks[category_name] = mask
+
             # loop over signal and background categories for AUC calculation
             aucs = {}
-            for signal_category in signal_categories:
-                for background_category in background_categories:
+            for sig_name, sig_settings in signal_categories.items():
+                for bkg_name, bkg_settings in background_categories.items():
 
-                    # get scores and labels
-                    (scores, labels, weights) = get_scores_from_events(events,
-                            score_branch = score_branch,
-                            signal_branch = signal_category,
-                            background_branch = background_category,
-                            xsecweighting = xsecweighting)
-
+                    # get scores for signal and background
+                    scores_sig = scores[masks[sig_name]]
+                    weights_sig = weights[masks[sig_name]]
+                    scores_bkg = scores[masks[bkg_name]]
+                    weights_bkg = weights[masks[bkg_name]]
+                    
                     # calculate AUC
-                    auc = roc_auc_score(labels, scores, sample_weight=np.abs(weights))
-                    aucs[f'{signal_category}_vs_{background_category}'] = auc
+                    this_scores = np.concatenate((scores_sig, scores_bkg))
+                    this_weights = np.concatenate((weights_sig, weights_bkg))
+                    this_labels = np.concatenate((np.ones(len(scores_sig)), np.zeros(len(scores_bkg))))
+                    auc = roc_auc_score(this_labels, this_scores, sample_weight=np.abs(this_weights))
+                    aucs[f'{sig_name}_vs_{bkg_name}'] = auc
 
             # append auc results to this alpha entry
             result['aucs_raw'].append(aucs)
 
             # loop over categories for DisCo calculation
             dccoeffs = {}
-            for category in correlation_categories:
+            for cat_name, cat_settings in all_categories.items():
 
                 # calculate distance correlation
                 thisdccoeffs = get_discos_from_events(events,
                                  score_branch = score_branch,
-                                 variable_branches = correlation_variables,
-                                 mask_branch = category,
-                                 npoints=1000, niterations=5)
-                dccoeffs[category] = thisdccoeffs
+                                 correlation_variables = correlation_variables,
+                                 mask_branch = cat_settings['branch'],
+                                 npoints=128, niterations=5)
+                dccoeffs[cat_name] = thisdccoeffs
+
+                # alternatively, use a simpler/faster correlation metric
+                #dccoeffs[cat_name] = {}
+                #this_scores = scores[masks[cat_name]]
+                #for var_name, var_settings in correlation_variables.items():
+                #    var_values = events[var_settings['branch']][masks[cat_name]]
+                #    corrcoef = abs(np.corrcoef(this_scores, var_values)[0,1])
+                #    dccoeffs[cat_name][var_name] = corrcoef
 
             # add disco results to this alpha entry
             result['dccoeffs_raw'].append(dccoeffs)
@@ -126,7 +185,7 @@ if __name__=='__main__':
                 result[f'auc_avg_{key}'] = avg
                 result[f'auc_min_{key}'] = avg - std
                 result[f'auc_max_{key}'] = avg + std
-        for category in correlation_categories:
+        for category in all_categories:
             for variable in correlation_variables:
                 key = f'{category}_{variable}'
                 avg = np.mean([el[category][variable] for el in result['dccoeffs_raw']])
@@ -148,17 +207,17 @@ if __name__=='__main__':
     sorted_ids = np.argsort(alphas)
     alphas = alphas[sorted_ids]
     aucs = {}
-    for signal_category in signal_categories:
-        for background_category in background_categories:
-            key = f'{signal_category}_vs_{background_category}'
+    for sig_name, sig_settings in signal_categories.items():
+        for bkg_name, bkg_settings in background_categories.items():
+            key = f'{sig_name}_vs_{bkg_name}'
             auc_avg = np.array([results[idx][f'auc_avg_{key}'] for idx in sorted_ids])
             auc_min = np.array([results[idx][f'auc_min_{key}'] for idx in sorted_ids])
             auc_max = np.array([results[idx][f'auc_max_{key}'] for idx in sorted_ids])
             aucs[key] = {'avg': auc_avg, 'min': auc_min, 'max': auc_max}
     dccoeffs = {}
-    for category in correlation_categories:
-        for variable in correlation_variables:
-            key = f'{category}_{variable}'
+    for cat_name, cat_settings in all_categories.items():
+        for var_name, var_settings in correlation_variables.items():
+            key = f'{cat_name}_{var_name}'
             dccoeff_avg = np.array([results[idx][f'dccoeff_avg_{key}'] for idx in sorted_ids])
             dccoeff_min = np.array([results[idx][f'dccoeff_min_{key}'] for idx in sorted_ids])
             dccoeff_max = np.array([results[idx][f'dccoeff_max_{key}'] for idx in sorted_ids])
@@ -166,34 +225,48 @@ if __name__=='__main__':
     sorted_ids = np.argsort(alphas)
 
     # make a plot
-    print('Making plot...')
-    fig, ax = plt.subplots()
+    print('Making plot of AUCs...')
+    fig, axs = plt.subplots(figsize=(12,6), ncols=2)
+    ax = axs[0]
     ncolors = len(signal_categories)*len(background_categories)
-    cmap = plt.get_cmap('rainbow', ncolors)
+    cmap = plt.get_cmap('cool', ncolors)
     cidx = 0
-    for signal_category in signal_categories:
-        for background_category in background_categories:
-            key = f'{signal_category}_vs_{background_category}'
+    # base plot
+    for sig_name, sig_settings in signal_categories.items():
+        for bkg_name, bkg_settings in background_categories.items():
+            key = f'{sig_name}_vs_{bkg_name}'
+            label = f'{sig_settings["label"]} vs. {bkg_settings["label"]}'
             color = cmap(cidx); cidx += 1
-            ax.plot(alphas, aucs[key]['avg'], color=color, label=f'AUC ({key})')
+            ax.plot(alphas, aucs[key]['avg'], color=color, label=label)
             ax.fill_between(alphas, aucs[key]['min'], aucs[key]['max'], color=color, alpha=0.5)
-
-    ncolors = len(correlation_categories)*len(correlation_variables)
-    cmap = plt.get_cmap('rainbow', ncolors)
-    cidx = 0
-    for category in correlation_categories:
-        for variable in correlation_variables:
-            key = f'{category}_{variable}'
-            color = cmap(cidx); cidx += 1
-            ax.plot(alphas, dccoeffs[key]['avg'], linestyle='--', color=color, label=f'DisCo ({key})')
-            ax.fill_between(alphas, dccoeffs[key]['min'], dccoeffs[key]['max'], color=color, alpha=0.5)
-
+    # aesthetics
     ax.legend(fontsize=12)
     ax.set_xlabel('Disco strength parameter', fontsize=12)
+    ax.set_ylabel('AUC', fontsize=12)
+    ax.set_ylim((0.5, 1.))
+    ax.grid(visible=True, which='both')
 
+    print('Making plot of correlations...')
+    ax = axs[1]
+    ncolors = len(all_categories)*len(correlation_variables)
+    cmap = plt.get_cmap('cool', ncolors)
+    cidx = 0
+    # base plot
+    for cat_name, cat_settings in all_categories.items():
+        for var_name, var_settings in correlation_variables.items():
+            key = f'{cat_name}_{var_name}'
+            label = f'{cat_settings["label"]} ({var_settings["label"]})'
+            color = cmap(cidx); cidx += 1
+            ax.plot(alphas, dccoeffs[key]['avg'], linestyle='--', color=color, label=label)
+            ax.fill_between(alphas, dccoeffs[key]['min'], dccoeffs[key]['max'], color=color, alpha=0.5)
+    # aesthetics
+    ax.legend(fontsize=12)
+    ax.set_xlabel('Disco strength parameter', fontsize=12)
+    ax.set_ylabel('Correlation strength', fontsize=12)
     ax.set_yscale('log')
     ax.set_ylim((0.001, 1.))
     ax.grid(visible=True, which='both')
 
+    # save figure
     fig.tight_layout()
     fig.savefig(args.outputfile)

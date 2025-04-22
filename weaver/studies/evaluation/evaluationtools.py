@@ -4,48 +4,8 @@ import uproot
 import numpy as np
 
 
-def get_scores_from_events(events, score_branch=None,
-        signal_branch=None, background_branch=None,
-        xsecweighting=False):
-    ### get scores from an events array
-
-    # format the scores
-    if score_branch is None: raise Exception('Must provide a score branch.')
-    scores = events[score_branch]
-
-    # format the labels
-    # note: if either the signal_branch or the background_branch is not specified,
-    #       it is just taken to be the complement of the one that is specified.
-    # note: if neither the signal branch nor the background_branch are specified,
-    #       the labels are set to None.
-    labels = -np.ones(len(scores))
-    if signal_branch is not None:
-        labels = np.where(events[signal_branch]==1, 1, labels)
-        if background_branch is not None:
-            labels = np.where(events[background_branch]==1, 0, labels)
-        else: labels = np.where(labels==-1, 0, labels)
-    elif background_branch is not None:
-        labels = np.where(events[background_branch]==1, 0, 1)
-    else: labels = None
-
-    # format weights
-    weights = np.ones(len(scores))
-    if xsecweighting:
-        weights = np.multiply(events['genWeight'], events['xsecWeight'])
-
-    # mask the scores and labels
-    # (i.e. remove entries that are neither signal nor background)
-    if labels is not None:
-        mask = (labels >= 0)
-        scores = scores[mask]
-        labels = labels[mask]
-        weights = weights[mask]
-
-    # return the result
-    return (scores, labels, weights)
-
-
-def get_discos_from_events(events, score_branch=None, variable_branches=None,
+def get_discos_from_events(events,
+        score_branch=None, correlation_variables=None,
         npoints=1000, niterations=1, mask_branch=None):
     ### get distance correlation coefficient from events
 
@@ -57,22 +17,22 @@ def get_discos_from_events(events, score_branch=None, variable_branches=None,
 
     # check arguments
     if score_branch is None: raise Exception('Must provide a score branch.')
-    if variable_branches is None: raise Exception('Must provide at least one variable branch.')
+    if correlation_variables is None: raise Exception('Must provide at least one variable.')
+
+    # make a mask
+    mask = None
+    if mask_branch is not None:
+        mask = (events[mask_branch]).astype(bool)
 
     # get scores
-    # note: if mask_branch is None, the returned labels are None,
-    #       and no masking will be performed.
-    (scores, labels, weights) = get_scores_from_events(events,
-                                  score_branch=score_branch,
-                                  signal_branch=mask_branch)
-    if mask_branch is not None:
-        mask = (labels == 1).astype(bool)
+    scores = events[score_branch]
 
     # get requested variable branches from events
-    variables = {b: events[b] for b in variable_branches}
+    variables = {varname: events[var['branch']] 
+                  for varname, var in correlation_variables.items()}
 
     # mask scores and other branches if requested
-    if mask_branch is not None:
+    if mask is not None:
         scores = scores[mask]
         for varname, values in variables.items():
             variables[varname] = values[mask]

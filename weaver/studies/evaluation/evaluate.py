@@ -24,8 +24,8 @@ if __name__=='__main__':
     args = parser.parse_args()
 
     # hard coded settings
-    score_branch = 'score_isSignal'
     treename = 'Events'
+    score_branch = 'score_isSignal'
     xsecweighting = True
     signal_categories = {
         'HH': {
@@ -79,8 +79,7 @@ if __name__=='__main__':
     # find all branches to read
     branches_to_read = (
         [score_branch]
-        + [cat['branch'] for cat in signal_categories.values()]
-        + [cat['branch'] for cat in background_categories.values()]
+        + [cat['branch'] for cat in all_categories.values()]
         + [v['branch'] for v in correlation_variables.values()]
     )
     if xsecweighting:

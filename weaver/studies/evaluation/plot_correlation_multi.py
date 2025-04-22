@@ -10,8 +10,6 @@ import matplotlib.pyplot as plt
 thisdir = os.path.abspath(os.path.dirname(__file__))
 sys.path.append(thisdir)
 
-from evaluationtools import get_events_from_file
-
 
 def plot_correlation_multi(events,
             categories,
