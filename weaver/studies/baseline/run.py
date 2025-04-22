@@ -35,7 +35,7 @@ if __name__=='__main__':
     #sample_config_test = os.path.abspath('configs/samples_hh4b_mh125_vs_tt_allyears_testing.yaml')
     #sample_config_test = os.path.abspath('configs/samples_hh4b_mh125_vs_qcd400to600_allyears_testing.yaml')
     # output dir
-    outputdir = os.path.join(thisdir, 'output_test_part_fineresampling_mh1')
+    outputdir = os.path.join(thisdir, 'output_test_part')
     # network settings
     architecture = None
     #architecture = [16, 8, 4]

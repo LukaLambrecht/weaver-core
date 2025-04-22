@@ -30,50 +30,17 @@ test_time_selection:
 file_magic:
   # Match file names to custom sample index
   sample:
-    HHto4b_mH_050_powheg_pythia8_Run3_.+\.root: 50
-    HHto4b_mH_060_powheg_pythia8_Run3_.+\.root: 60
-    HHto4b_mH_070_powheg_pythia8_Run3_.+\.root: 70
-    HHto4b_mH_080_powheg_pythia8_Run3_.+\.root: 80
-    HHto4b_mH_090_powheg_pythia8_Run3_.+\.root: 90
-    HHto4b_mH_100_powheg_pythia8_Run3_.+\.root: 100
-    HHto4b_mH_110_powheg_pythia8_Run3_.+\.root: 110
-    HHto4b_mH_120_powheg_pythia8_Run3_.+\.root: 120
     HHto4b_mH_125_powheg_pythia8_Run3_.+\.root: 125
-    HHto4b_mH_130_powheg_pythia8_Run3_.+\.root: 130
-    HHto4b_mH_140_powheg_pythia8_Run3_.+\.root: 140
-    HHto4b_mH_150_powheg_pythia8_Run3_.+\.root: 150
-    HHto4b_mH_160_powheg_pythia8_Run3_.+\.root: 160
-    HHto4b_mH_170_powheg_pythia8_Run3_.+\.root: 170
-    HHto4b_mH_180_powheg_pythia8_Run3_.+\.root: 180
-    HHto4b_mH_190_powheg_pythia8_Run3_.+\.root: 190
-    HHto4b_mH_200_powheg_pythia8_Run3_.+\.root: 200
     QCD.+\.root: 1
     TTto.+\.root: 2
 
 new_variables:
     # Define new variables as a function of existing variables
     hh_average_mass: (0.5*(dHH_H1_mass+dHH_H2_mass))
-    isHHto4b_mH_050: sample==50
-    isHHto4b_mH_060: sample==60
-    isHHto4b_mH_070: sample==70
-    isHHto4b_mH_080: sample==80
-    isHHto4b_mH_090: sample==90
-    isHHto4b_mH_100: sample==100
-    isHHto4b_mH_110: sample==110
-    isHHto4b_mH_120: sample==120
     isHHto4b_mH_125: sample==125
-    isHHto4b_mH_130: sample==130
-    isHHto4b_mH_140: sample==140
-    isHHto4b_mH_150: sample==150
-    isHHto4b_mH_160: sample==160
-    isHHto4b_mH_170: sample==170
-    isHHto4b_mH_180: sample==180
-    isHHto4b_mH_190: sample==190
-    isHHto4b_mH_200: sample==200
-    isHHto4b_mH_variations: ((sample>10) & (sample!=125))
     isQCD: sample==1
     isTT: sample==2
-    isSignal: sample>10
+    isSignal: sample==125
     isBackground: sample<10
 
     ak4_mask: ak.ones_like(ak4_pt)
@@ -91,13 +58,13 @@ preprocess:
 
 inputs:
    # Define input features to the network
-   jet_points:
+   points:
       length: 6
       pad_mode: wrap
       vars:
          - [ak4_eta, null]
          - [ak4_phi, null]
-   jet_features:
+   features:
       length: 6
       pad_mode: wrap
       vars:
@@ -109,7 +76,7 @@ inputs:
          - [ak4_btag_M, null]
          - [ak4_btag_T, null]
          - [ak4_btag_XT, null]
-   jet_vectors:
+   vectors:
       length: 6
       pad_mode: wrap
       vars:
@@ -117,11 +84,16 @@ inputs:
          - [ak4_py, null]
          - [ak4_pz, null]
          - [ak4_energy, null]
-   jet_mask:
+   mask:
       length: 6
       pad_mode: constant
       vars:
          - [ak4_mask, null]
+
+   decorrelate:
+      length: 1
+      vars:
+         - hh_average_mass
 
 labels:
    type: simple
@@ -135,10 +107,8 @@ observers:
   - hh_average_mass
   - dHH_NbtagM
   - isHHto4b_mH_125
-  - isSignal
   - isQCD
   - isTT
-  - isBackground
   - genWeight
   - xsecWeight
   - lumiwgt
@@ -152,13 +122,8 @@ weights:
    reweight_threshold: 0
    reweight_load_fraction: 1.
    reweight_vars:
-      #hh_average_mass: [50., 75., 100., 125., 150., 175., 200., 250., 30000.]
-      dHH_H1_mass: [50., 75., 100., 125., 150., 175., 200., 250., 30000.]
-      dHH_H2_mass: [50., 75., 100., 125., 150., 175., 200., 250., 30000.]
-      #hh_average_mass: [50., 60., 70., 80., 90., 100., 110., 120., 130., 140., 150., 160., 170., 180., 190., 200., 250., 30000.]
-      #dHH_H1_mass: [50., 60., 70., 80., 90., 100., 110., 120., 130., 140., 150., 160., 170., 180., 190., 200., 250., 30000.]
-      #dHH_H2_mass: [50., 60., 70., 80., 90., 100., 110., 120., 130., 140., 150., 160., 170., 180., 190., 200., 250., 30000.]
-      dHH_NbtagM: [2.5, 3.5, 4.5]
+      hh_average_mass: [50., 30000.]
+      alljets_ht: [0., 30000.]
    reweight_discard_under_overflow: false
-   reweight_classes: [isHHto4b_mH_125, isHHto4b_mH_variations, isQCD, isTT]
-   class_weights: [1, 1, 1, 1]
+   reweight_classes: [isSignal, isQCD, isTT]
+   class_weights: [1, 1, 1]
