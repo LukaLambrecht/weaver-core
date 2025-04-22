@@ -7,6 +7,7 @@ Modified to include DisCo loss.
 
 import os
 import sys
+import math
 import json
 import tqdm
 import torch
@@ -313,8 +314,11 @@ class ParticleNetDisCo(nn.Module):
         discoloss = distance_correlation(predictions_column, mass, power=self.disco_power)
 
         # make the sum
-        totalloss = celoss + self.disco_alpha * discoloss
-        return (totalloss, {'BCE': celoss.item(), 'DisCo': discoloss.item()})
+        if( math.isnan(discoloss.item()) or np.isnan(discoloss.item()) ):
+            totalloss = (1 + self.disco_alpha) * celoss
+        else: 
+            totalloss = celoss + self.disco_alpha * discoloss
+        return (totalloss, {'total': totalloss.item(), 'BCE': celoss.item(), 'DisCo': discoloss.item()})
 
 
     def train_single_epoch(self, train_loader, dev, **kwargs):
@@ -333,9 +337,9 @@ class ParticleNetDisCo(nn.Module):
         self.train()
 
         # initializations
-        loss_value = 0
         batch_idx = 0
         data_config = train_loader.dataset.config
+        history = []
 
         # loop over batches
         with tqdm.tqdm(train_loader) as tq:
@@ -391,12 +395,14 @@ class ParticleNetDisCo(nn.Module):
                     scheduler.step()
 
                 # print total loss
-                loss = loss.item()
                 tq.set_postfix({
-                  'Loss': '{:.5f}'.format(loss),
+                  'Loss': '{:.5f}'.format(lossvalues['total']),
                   'BCE': '{:.3f}'.format(lossvalues['BCE']),
                   'DisCo': '{:.3f}'.format(lossvalues['DisCo'])
                 })
+
+                # append to history
+                history.append(lossvalues)
 
                 # update counters
                 batch_idx += 1
@@ -408,3 +414,12 @@ class ParticleNetDisCo(nn.Module):
 
         # update scheduler (if it was not done per batch)
         if scheduler and not getattr(scheduler, '_update_per_step', False): scheduler.step()
+
+        # parse history from list of dicts to dict of lists
+        history_new = {}
+        for key in history[0].keys():
+            history_new[key] = [el[key] for el in history]
+        history = history_new
+
+        # return history
+        return history

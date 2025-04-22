@@ -5,6 +5,7 @@ import ast
 import sys
 import shutil
 import glob
+import json
 import argparse
 import functools
 import numpy as np
@@ -925,6 +926,8 @@ def _main(args):
         # training loop
         best_valid_metric = np.inf if args.regression_mode else 0
         grad_scaler = torch.cuda.amp.GradScaler() if args.use_amp else None
+        history_train = []
+        history_validation = []
         # loop over epochs
         for epoch in range(args.num_epochs):
             # in case of resuming an earlier training,
@@ -939,14 +942,16 @@ def _main(args):
             # use custom training function if the model has one
             if hasattr(model, 'train_single_epoch'):
                 _logger.info('Using model-specific custom training loop.')
-                model.train_single_epoch(train_loader, dev,
+                epoch_history_train = model.train_single_epoch(train_loader, dev,
                   loss_func=loss_func, optimizer=opt, scheduler=scheduler,
                   epoch=epoch, steps_per_epoch=args.steps_per_epoch,
                   grad_scaler=grad_scaler, tb_helper=tb)
             # else use the default training loop
-            else: train(model, loss_func, opt, scheduler, train_loader, dev, epoch,
-                    steps_per_epoch=args.steps_per_epoch, grad_scaler=grad_scaler, tb_helper=tb)
+            else: epoch_history_train = train(model, loss_func, opt, scheduler, train_loader, dev, epoch,
+                    steps_per_epoch=args.steps_per_epoch,
+                    grad_scaler=grad_scaler, tb_helper=tb)
             _logger.info('Training epoch #%d done.' % epoch)
+            if epoch_history_train is not None: history_train.append(epoch_history_train)
 
             # save the state of the model after this epoch
             if args.model_prefix and (args.backend is None or local_rank == 0):
@@ -968,9 +973,17 @@ def _main(args):
 
             # do validation
             _logger.info('Validating epoch #%d...' % epoch)
-            valid_metric = evaluate(model, val_loader, dev, epoch, loss_func=loss_func,
+            # use custom evaluation function if the model has one
+            if hasattr(model, 'evaluate_single_epoch'):
+                _logger.info('Using model-specific custom evaluation loop.')
+                valid_metric = model.evaluate_single_epoch(val_loader, dev,
+                                 epoch=epoch, loss_func=loss_func,
+                                 steps_per_epoch=args.steps_per_epoch_val, tb_helper=tb)
+            # else use the default evaluation function
+            else: valid_metric = evaluate(model, val_loader, dev, epoch, loss_func=loss_func,
                                     steps_per_epoch=args.steps_per_epoch_val, tb_helper=tb)
             _logger.info('Validating epoch #%d done.' % epoch)
+            if valid_metric is not None: history_validation.append(valid_metric)
             _logger.info('Current validation metric: %.5f (best: %.5f)' %
                          (valid_metric, best_valid_metric), color='bold')
             is_best_epoch = (
@@ -981,8 +994,20 @@ def _main(args):
             if is_best_epoch:
                 best_valid_metric = valid_metric
                 if args.model_prefix and (args.backend is None or local_rank == 0):
-                    shutil.copy2(args.model_prefix + '_epoch-%d_state.pt' %
-                                 epoch, args.model_prefix + '_best_epoch_state.pt')
+                    shutil.copy2(args.model_prefix + '_epoch-%d_state.pt' % epoch,
+                                 args.model_prefix + '_best_epoch_state.pt')
+
+    # save the training and validation history
+    if len(history_train) > 0:
+        history_train_file = args.model_prefix + '_history_train.json'
+        with open(history_train_file, 'w') as f:
+            json.dump(history_train, f)
+        _logger.info(f'Model training history saved to {history_train_file}')
+    if len(history_validation) > 0:
+        history_validation_file = args.model_prefix + '_history_validation.json'
+        with open(history_validation_file, 'w') as f:
+            json.dump(history_validation, f)
+        _logger.info(f'Model validation history saved to {history_validation_file}')
 
     # do testing if requested
     if args.data_test:

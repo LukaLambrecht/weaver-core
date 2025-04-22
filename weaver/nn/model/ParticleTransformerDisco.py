@@ -654,7 +654,10 @@ class ParticleTransformerDisco(nn.Module):
             raise Exception(msg)
 
         # make the sum
-        totalloss = celoss + self.disco_alpha * discoloss
+        if( math.isnan(discoloss.item()) or np.isnan(discoloss.item()) ):
+            totalloss = (1 + self.disco_alpha) * celoss
+        else:
+            totalloss = celoss + self.disco_alpha * discoloss
         return (totalloss, {'BCE': celoss.item(), 'DisCo': discoloss.item()})
 
     def train_single_epoch(self, train_loader, dev, **kwargs):
