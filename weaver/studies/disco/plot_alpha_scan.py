@@ -157,7 +157,7 @@ if __name__=='__main__':
                                  score_branch = score_branch,
                                  correlation_variables = correlation_variables,
                                  mask_branch = cat_settings['branch'],
-                                 npoints=128, niterations=5)
+                                 npoints=1000, niterations=10)
                 dccoeffs[cat_name] = thisdccoeffs
 
                 # alternatively, use a simpler/faster correlation metric

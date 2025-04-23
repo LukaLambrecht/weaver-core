@@ -110,6 +110,7 @@ inputs:
          - [ak4_btag_L, null]
          - [ak4_btag_M, null]
          - [ak4_btag_T, null]
+         - [ak4_btag_XT, null]
    mask:
       length: 6
       pad_mode: constant
@@ -151,11 +152,8 @@ weights:
    reweight_threshold: 0
    reweight_load_fraction: 1.
    reweight_vars:
-      hh_average_mass: [50., 75., 100., 125., 150., 175., 200., 225., 250., 30000.]
+      hh_average_mass: [50., 60., 70., 80., 90., 100., 110., 120., 130., 140., 150., 160., 170., 180., 190., 200., 250., 30000.]
       dHH_NbtagM: [2.5, 3.5, 4.5]
-   #reweight_vars:
-   #   hh_average_mass: [50., 30000.]
-   #   alljets_ht: [0., 30000.]
    reweight_discard_under_overflow: false
-   reweight_classes: [isHHto4b_mH_125, isHHto4b_mH_variations, isQCD, isTT]
-   class_weights: [1, 1, 1, 1]
+   reweight_classes: [isSignal, isQCD, isTT]
+   class_weights: [1, 1, 1]

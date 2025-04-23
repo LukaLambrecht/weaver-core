@@ -75,6 +75,7 @@ inputs:
          - [ak4_btag_L, null]
          - [ak4_btag_M, null]
          - [ak4_btag_T, null]
+         - [ak4_btag_XT, null]
    vectors:
       length: 6
       pad_mode: wrap

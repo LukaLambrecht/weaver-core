@@ -29,21 +29,21 @@ if __name__=='__main__':
     #sample_config_test = os.path.abspath('configs/samples_hh4b_mh125_vs_bkg_allyears_testing.yaml')
     sample_config_test = os.path.abspath('configs/samples_hh4b_multimh_vs_bkg_allyears_testing.yaml')
     # output dir
-    outputdir = os.path.join(thisdir, 'output_multimh_pnet_plotsforloukas')
+    outputdir = os.path.join(thisdir, 'output_multimh_pnet')
     # set alpha range
-    alphas = [0, 5, 10, 50, 100, 200, 500]
+    alphas = [0, 1, 2, 5, 7, 10, 20, 30, 40, 50, 70, 100, 150, 200]
     # network settings
     num_epochs = 50
-    steps_per_epoch = 500
-    batch_size = 256
-    num_trainings = 3
+    steps_per_epoch = 1000
+    batch_size = 512
+    num_trainings = 5
     # specify whether to run training or only print preparatory steps
     do_training = True
     # runmode and job settings
     runmode = 'slurm'
     #conda_activate = 'source /eos/user/l/llambrec/miniforge3/bin/activate'
     #conda_env = 'weaver'
-    slurmscript = 'sjob_weaver_multimh.sh'
+    slurmscript = 'sjob_weaver_multimh_pnet.sh'
     env_cmds = ([
         'source /blue/avery/llambre1.brown/miniforge3/bin/activate',
         'conda activate weaver',
