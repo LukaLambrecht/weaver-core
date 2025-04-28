@@ -15,26 +15,28 @@ if __name__=='__main__':
     # common settings
     weaverdir = os.path.join(weavercoredir, 'weaver')
     # data config
-    data_config = os.path.abspath('configs/data_config_hh4b_vs_qcdrun2_pnet.yaml')
+    data_config = os.path.abspath('configs/data_config_hh4b_multimh_vs_bkg_pnet.yaml')
+    #data_config = os.path.abspath('configs/data_config_hh4b_multimh_vs_bkg_part.yaml')
     # model config
     model_config = os.path.abspath('configs/model_pnet.py')
+    #model_config = os.path.abspath('configs/model_part.py')
     # sample list for training data
-    sample_config_train = os.path.abspath('configs/samples_hh4b_vs_qcdrun2.yaml')
+    sample_config_train = os.path.abspath('configs/samples_hh4b_multimh_vs_bkg_allyears_training.yaml')
     # sample list for testing data
-    sample_config_test = None
+    sample_config_test = os.path.abspath('configs/samples_hh4b_multimh_vs_bkg_allyears_testing.yaml')
     # output dir
-    outputdir = os.path.join(thisdir, 'output_test')
+    outputdir = os.path.join(thisdir, 'output_withqcdrun2')
     # network settings
-    num_epochs = 1
-    steps_per_epoch = 100
+    num_epochs = 30
+    steps_per_epoch = 300
     batch_size = 256
     # specify whether to run training or only print preparatory steps
     do_training = True
     # runmode and job settings
-    runmode = 'local'
+    runmode = 'slurm'
     #conda_activate = 'source /eos/user/l/llambrec/miniforge3/bin/activate'
     #conda_env = 'weaver'
-    slurmscript = 'sjob_weaver.sh'
+    slurmscript = 'sjob_weaver_withqcdrun2.sh'
     env_cmds = ([
         'source /blue/avery/llambre1.brown/miniforge3/bin/activate',
         'conda activate weaver',
@@ -44,12 +46,10 @@ if __name__=='__main__':
     # check if all config files exist
     files_to_check = [data_config, model_config, sample_config_train, sample_config_test]
     for f in files_to_check:
-        if f is None: continue
         if not os.path.exists(f):
             raise Exception('File {} does not exist.'.format(f))
 
     # make output directory
-    if os.path.exists(outputdir): os.system(f'rm -r {outputdir}')
     os.makedirs(outputdir)
 
     # copy the config files to the working directory
@@ -64,13 +64,15 @@ if __name__=='__main__':
     os.system(f'cp {model_config} {this_model_config}')
     this_sample_config_train = os.path.join(outputdir, 'sample_config_train.yaml')
     os.system(f'cp {sample_config_train} {this_sample_config_train}')
-    this_sample_config_test = None
-    if sample_config_test is not None:
-        this_sample_config_test = os.path.join(outputdir, 'sample_config_test.yaml')
-        os.system(f'cp {sample_config_test} {this_sample_config_test}')
+    this_sample_config_test = os.path.join(outputdir, 'sample_config_test.yaml')
+    os.system(f'cp {sample_config_test} {this_sample_config_test}')
 
     # set model prefix
     model_prefix = os.path.join(outputdir, 'network')
+
+    # set additional network options
+    # (note: the specific model must support this!)
+    network_kwargs = None
 
     # set output file for test results
     test_output = os.path.join(outputdir, 'output.root')
@@ -80,11 +82,12 @@ if __name__=='__main__':
     cmd += f' --data-train {this_sample_config_train}'
     cmd += f' --data-config {this_data_config}'
     cmd += f' --network-config {this_model_config}'
+    if network_kwargs is not None: cmd += f' --network-kwargs {network_kwargs}'
     cmd += f' --num-epochs {num_epochs}'
     cmd += f' --steps-per-epoch {steps_per_epoch}'
     cmd += f' --batch-size {batch_size}'
     cmd += f' --model-prefix {model_prefix}'
-    if this_sample_config_test is not None: cmd += f' --data-test {this_sample_config_test}'
+    cmd += f' --data-test {this_sample_config_test}'
     cmd += f' --predict-output {test_output}'
     # data loading options
     cmd += ' --in-memory --fetch-step 1'
@@ -103,4 +106,5 @@ if __name__=='__main__':
         job_name = os.path.splitext(slurmscript)[0]
         st.submitCommandAsSlurmJob(cmd, script=slurmscript,
                 job_name=job_name, env_cmds=env_cmds,
+                memory='8G',
                 time='05:00:00')
