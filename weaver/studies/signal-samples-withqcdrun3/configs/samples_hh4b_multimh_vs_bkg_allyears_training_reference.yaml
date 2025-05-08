@@ -1,0 +1,15 @@
+# signal samples
+- /blue/avery/llambre1.brown/hhto4b-samples/ntuples-sig/ntuples_*_0L/mc/pieces/HHto4b_mH_125_*.root
+- /blue/avery/llambre1.brown/hhto4b-samples/ntuples-sig/ntuples_*_0L/mc/pieces/HHto4b_mH_??0_*.root
+
+# QCD samples
+- /blue/avery/llambre1.brown/hhto4b-samples/ntuples-bkg/ntuples_*_QCD/QCD-4Jets_HT-400to600_*_tree_training.root
+- /blue/avery/llambre1.brown/hhto4b-samples/ntuples-bkg/ntuples_*_QCD/QCD-4Jets_HT-600to800_*_tree_training.root
+- /blue/avery/llambre1.brown/hhto4b-samples/ntuples-bkg/ntuples_*_QCD/QCD-4Jets_HT-800to1000_*_tree_training.root
+- /blue/avery/llambre1.brown/hhto4b-samples/ntuples-bkg/ntuples_*_QCD/QCD-4Jets_HT-1000to1200_*_tree_training.root
+- /blue/avery/llambre1.brown/hhto4b-samples/ntuples-bkg/ntuples_*_QCD/QCD-4Jets_HT-1200to1500_*_tree_training.root
+- /blue/avery/llambre1.brown/hhto4b-samples/ntuples-bkg/ntuples_*_QCD/QCD-4Jets_HT-1500to2000_*_tree_training.root
+- /blue/avery/llambre1.brown/hhto4b-samples/ntuples-bkg/ntuples_*_QCD/QCD-4Jets_HT-2000_*_tree_training.root
+
+# tt samples
+- /blue/avery/llambre1.brown/hhto4b-samples/ntuples-bkg/ntuples_*_TT/TTto*_tree_training.root

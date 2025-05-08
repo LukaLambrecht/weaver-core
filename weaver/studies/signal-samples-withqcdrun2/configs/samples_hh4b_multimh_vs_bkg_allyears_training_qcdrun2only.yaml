@@ -1,0 +1,10 @@
+# signal samples
+- /blue/avery/llambre1.brown/hhto4b-samples/ntuples-sig/ntuples_*_0L/mc/pieces/HHto4b_mH_125_*.root
+- /blue/avery/llambre1.brown/hhto4b-samples/ntuples-sig/ntuples_*_0L/mc/pieces/HHto4b_mH_??0_*.root
+
+# QCD samples (Run 2)
+- /blue/avery/llambre1.brown/hhto4b-samples/ntuples-bkg/ntuples_2017_QCD/*.root
+- /blue/avery/llambre1.brown/hhto4b-samples/ntuples-bkg/ntuples_2018_QCD/*.root
+
+# tt samples
+- /blue/avery/llambre1.brown/hhto4b-samples/ntuples-bkg/ntuples_*_TT/TTto*_tree_training.root

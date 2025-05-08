@@ -21,8 +21,9 @@ if __name__=='__main__':
     model_config = os.path.abspath('configs/model_pnet.py')
     #model_config = os.path.abspath('configs/model_part.py')
     # sample list for training data
-    #sample_config_train = os.path.abspath('configs/samples_hh4b_multimh_vs_bkg_allyears_training_withqcdrun2.yaml')
-    sample_config_train = os.path.abspath('configs/samples_hh4b_multimh_vs_bkg_allyears_training_qcdrun2only.yaml')
+    #sample_config_train = os.path.abspath('configs/samples_hh4b_multimh_vs_bkg_allyears_training_reference.yaml')
+    #sample_config_train = os.path.abspath('configs/samples_hh4b_multimh_vs_bkg_allyears_training_altqcd.yaml')
+    sample_config_train = os.path.abspath('configs/samples_hh4b_multimh_vs_bkg_allyears_training_altqcd_withqcdrun2.yaml')
     # sample list for testing data
     sample_config_test = os.path.abspath('configs/samples_hh4b_multimh_vs_bkg_allyears_testing.yaml')
     # output dir
@@ -32,7 +33,7 @@ if __name__=='__main__':
     steps_per_epoch = 300
     batch_size = 256
     # specify whether to run training or only print preparatory steps
-    do_training = True
+    do_training = False
     # runmode and job settings
     runmode = 'local'
     #conda_activate = 'source /eos/user/l/llambrec/miniforge3/bin/activate'
@@ -107,5 +108,5 @@ if __name__=='__main__':
         job_name = os.path.splitext(slurmscript)[0]
         st.submitCommandAsSlurmJob(cmd, script=slurmscript,
                 job_name=job_name, env_cmds=env_cmds,
-                memory='8G',
+                memory='16G',
                 time='05:00:00')
