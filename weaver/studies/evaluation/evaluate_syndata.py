@@ -64,7 +64,7 @@ if __name__=='__main__':
             'bins': np.linspace(50, 250, num=26)
         }
     }
-    correlation_slices = [0., 0.5, 0.75, 1]
+    correlation_slices = [0., 0.5, 0.75, 0.9, 0.95, 1]
     phase_space_split = {
       'all': {}
     }
