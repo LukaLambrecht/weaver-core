@@ -18,7 +18,8 @@ def plot_scores_multi(events,
             categories,
             xsecweighting = False,
             outputdir = None,
-            score_branch = None):
+            score_branch = None,
+            variable = None):
 
     # check arguments
     if score_branch is None: raise Exception('Must provide a score branch.')
@@ -32,11 +33,36 @@ def plot_scores_multi(events,
         weights = np.multiply(events['lumiwgt'], np.multiply(events['genWeight'], events['xsecWeight']))
 
     # get mask for each category
-    masks = {}
+    cat_masks = {}
     for category_name, category_settings in categories.items():
         branch = category_settings['branch']
         mask = events[branch].astype(bool)
-        masks[category_name] = mask
+        cat_masks[category_name] = mask
+
+    # create dummy secondary variable if none was provided
+    # (for optional splitting of the score distribution for each process
+    # into additional bins based on a provided variable)
+    if variable is None:
+        variable = {
+            'branch': score_branch,
+            'label': '',
+            'bins': [-99, 99]
+        }
+
+    # make mask for each secondary variable bin
+    # loop over bins in secondary variable
+    var_masks = []
+    var_values = var_values = events[variable['branch']]
+    for idx in range(len(variable['bins'])-1):
+        minvarvalue = variable['bins'][idx]
+        maxvarvalue = variable['bins'][idx+1]
+        mask = ((var_values >= minvarvalue) & (var_values <= maxvarvalue))
+        var_masks.append(mask)
+
+    # set line styles for different secondary variable bins
+    linestyles = ['solid']
+    for idx in range(len(variable['bins'])-1):
+        linestyles.append( (0, (1, 1 + 1*idx)) )
 
     # make output directory
     if outputdir is not None:
@@ -47,18 +73,38 @@ def plot_scores_multi(events,
 
     # loop over categories
     for category_name, category_settings in categories.items():
+        cat_mask = cat_masks[category_name]
 
-                this_values = scores[masks[category_name]]
-                this_weights = weights[masks[category_name]]
+        # loop over bins in secondary variable
+        for idx in range(len(variable['bins'])):
+                # first iteration is all (no splitting)
+                if idx==0:
+                    var_mask = np.ones(len(cat_mask)).astype(bool)
+                    var_bin_label = ''
+                # otherwise split in secondary bins
+                else:
+                    var_mask = var_masks[idx-1]
+                    var_bin_label = ' ({}: {:.2f} - {:.2f})'.format(
+                                  variable['label'],
+                                  variable['bins'][idx-1],
+                                  variable['bins'][idx])
+
+                # get scores
+                total_mask = (cat_mask & var_mask)
+                this_values = scores[total_mask]
+                this_weights = weights[total_mask]
             
                 # make a histogram
+                label = category_settings['label']
+                if len(variable['bins'])>2: label += ' ' + var_bin_label
                 bins = np.linspace(np.amin(scores), np.amax(scores), num=31)
                 hist = np.histogram(this_values, bins=bins, weights=this_weights)[0]
                 norm = np.sum( np.multiply(hist, np.diff(bins) ) )
                 staterrors = np.sqrt(np.histogram(this_values, bins=bins, weights=np.square(this_weights))[0])
                 ax.stairs(hist/norm, edges=bins,
                   color = category_settings['color'],
-                  label = category_settings['label'],
+                  label = label,
+                  linestyle = linestyles[idx],
                   linewidth=2)
                 ax.stairs((hist+staterrors)/norm, baseline=(hist-staterrors)/norm,
                         color = category_settings['color'],

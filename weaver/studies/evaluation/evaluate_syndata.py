@@ -42,6 +42,11 @@ if __name__=='__main__':
         }
     }
     all_categories = {**signal_categories, **background_categories}
+    score_secondary_variable = {
+        'branch': 'dHH_H1_mass',
+        'label': '$m(H_{1})$',
+        'bins': [50, 100, 150, 250]
+    }
     correlation_variables = {
         'mH1': {
             'branch': 'dHH_H1_mass',
@@ -64,7 +69,7 @@ if __name__=='__main__':
             'bins': np.linspace(50, 250, num=26)
         }
     }
-    correlation_slices = [0., 0.5, 0.75, 0.9, 0.95, 1]
+    score_slices = [0., 0.5, 0.75, 0.9, 0.95, 1]
     phase_space_split = {
       'all': {}
     }
@@ -132,7 +137,7 @@ if __name__=='__main__':
                 outputdir = outputdir,
                 score_branch = score_branch,
                 variables = correlation_variables,
-                slices = correlation_slices)
+                slices = score_slices)
             plt.close()
 
             # plot score distribution and ROC for multiple categories together
@@ -141,7 +146,8 @@ if __name__=='__main__':
                 all_categories,
                 xsecweighting = xsecweighting,
                 outputdir = outputdir,
-                score_branch = score_branch)
+                score_branch = score_branch,
+                variable = score_secondary_variable)
             plot_roc_multi(
                 this_events,
                 signal_categories,
@@ -157,6 +163,6 @@ if __name__=='__main__':
                 xsecweighting = xsecweighting,
                 outputdir = outputdir,
                 score_branch = score_branch,
-                score_bins = correlation_slices,
+                score_bins = score_slices,
                 variables = correlation_variables)
             plt.close()
