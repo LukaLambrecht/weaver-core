@@ -15,15 +15,15 @@ if __name__=='__main__':
     # common settings
     weaverdir = os.path.join(weavercoredir, 'weaver')
     # data config
-    data_config = os.path.abspath('configs/data_config_hh4b_multimh_vs_bkg_pnet.yaml')
+    data_config = os.path.abspath('configs/data_config_pnet_train_syndata_test_bkg.yaml')
     # model config
     model_config = os.path.abspath('configs/model_pnet.py')
     # sample list for training data
     sample_config_train = os.path.abspath('configs/samples_hh4b_multimh_vs_syndata_training.yaml')
     # sample list for testing data
-    sample_config_test = os.path.abspath('configs/samples_hh4b_multimh_vs_syndata_testing.yaml')
+    sample_config_test = os.path.abspath('configs/samples_hh4b_multimh_vs_bkg_allyears_testing.yaml')
     # output dir
-    outputdir = os.path.join(thisdir, 'output_test')
+    outputdir = os.path.join(thisdir, 'output_test_trainsyn_testbkg')
     # network settings
     num_epochs = 30
     steps_per_epoch = 300
@@ -34,7 +34,7 @@ if __name__=='__main__':
     runmode = 'slurm'
     #conda_activate = 'source /eos/user/l/llambrec/miniforge3/bin/activate'
     #conda_env = 'weaver'
-    slurmscript = 'sjob_weaver_test.sh'
+    slurmscript = 'sjob_weaver_test2.sh'
     env_cmds = ([
         'source /blue/avery/llambre1.brown/miniforge3/bin/activate',
         'conda activate weaver',
