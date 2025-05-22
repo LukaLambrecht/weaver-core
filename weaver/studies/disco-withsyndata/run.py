@@ -25,9 +25,9 @@ if __name__=='__main__':
     # sample list for testing data
     sample_config_test = os.path.abspath('configs/samples_hh4b_multimh_vs_syndata_testing.yaml')
     # output dir
-    outputdir = os.path.join(thisdir, 'output_part')
+    outputdir = os.path.join(thisdir, 'output_part_extra')
     # set alpha range
-    alphas = [0, 1, 2, 5, 10, 25, 50, 100]
+    alphas = [15, 20]
     # network settings
     num_epochs = 50
     steps_per_epoch = 1000
