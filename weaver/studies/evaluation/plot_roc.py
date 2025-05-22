@@ -54,6 +54,9 @@ def plot_scores(events,
                 scores_bkg = scores[masks[background_category_name]]
                 weights_bkg = weights[masks[background_category_name]]
 
+                # safety for zero passing events
+                if len(scores_sig)==0 or len(scores_bkg)==0: continue
+
                 # calculate AUC
                 # note: the function below cannot handle negative weights,
                 #       so take absolute value)
@@ -156,6 +159,9 @@ def plot_roc(events,
                 weights_sig = weights[masks[signal_category_name]]
                 scores_bkg = scores[masks[background_category_name]]
                 weights_bkg = weights[masks[background_category_name]]
+
+                # safety for zero passing events
+                if len(scores_sig)==0 or len(scores_bkg)==0: continue
 
                 # calculate AUC
                 # note: the function below cannot handle negative weights,

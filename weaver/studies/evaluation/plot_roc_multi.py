@@ -26,6 +26,7 @@ def plot_scores_multi(events,
     
     # get scores
     scores = events[score_branch]
+    if len(scores)==0: return
 
     # get weights
     weights = np.ones(len(scores))
@@ -76,7 +77,11 @@ def plot_scores_multi(events,
         cat_mask = cat_masks[category_name]
 
         # loop over bins in secondary variable
-        for idx in range(len(variable['bins'])):
+        nids = len(variable['bins'])
+        if nids<=2: nids = 1
+        # (if only one bin (or invalid) was provided,
+        #  only plot total score, not binned in secondary variable)
+        for idx in range(nids):
                 # first iteration is all (no splitting)
                 if idx==0:
                     var_mask = np.ones(len(cat_mask)).astype(bool)
@@ -175,6 +180,10 @@ def plot_roc_multi(events,
                 weights_sig = weights[masks[signal_category_name]]
                 scores_bkg = scores[masks[background_category_name]]
                 weights_bkg = weights[masks[background_category_name]]
+                
+                # safety for no passing events
+                if len(scores_sig)==0 or len(scores_bkg)==0:
+                    continue
 
                 # calculate AUC
                 # note: the function below cannot handle negative weights,
@@ -205,7 +214,8 @@ def plot_roc_multi(events,
                 cidx += 1
     
     # other plot settings
-    ax.plot(efficiency_bkg, efficiency_bkg,
+    dummy_efficiency = np.linspace(0, 1, num=101)
+    ax.plot(dummy_efficiency, dummy_efficiency,
       color='darkblue', linewidth=3, linestyle='--', label='Baseline')
     ax.set_xlabel('Background pass-through', fontsize=12)
     ax.set_ylabel('Signal efficiency', fontsize=12)

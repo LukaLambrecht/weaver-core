@@ -23,6 +23,7 @@ def plot_correlation(events,
     
     # get scores
     scores = events[score_branch]
+    if len(scores)==0: return
 
     # get weights
     weights = np.ones(len(scores))
