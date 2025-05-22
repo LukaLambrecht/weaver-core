@@ -15,30 +15,30 @@ if __name__=='__main__':
     # common settings
     weaverdir = os.path.join(weavercoredir, 'weaver')
     # data config
-    data_config = os.path.abspath('configs/data_config_hh4b_multimh_vs_bkg_pnet.yaml')
+    data_config = os.path.abspath('configs/data_config_hh4b_multimh_vs_qcd_pnet_4monly.yaml')
     #data_config = os.path.abspath('configs/data_config_hh4b_multimh_vs_bkg_part.yaml')
     # model config
     model_config = os.path.abspath('configs/model_pnet.py')
     #model_config = os.path.abspath('configs/model_part.py')
     # sample list for training data
-    #sample_config_train = os.path.abspath('configs/samples_hh4b_multimh_vs_bkg_allyears_training_reference.yaml')
+    #sample_config_train = os.path.abspath('configs/samples_hh4b_multimh_vs_qcd_allyears_training_reference.yaml')
     #sample_config_train = os.path.abspath('configs/samples_hh4b_multimh_vs_bkg_allyears_training_altqcd.yaml')
-    sample_config_train = os.path.abspath('configs/samples_hh4b_multimh_vs_bkg_allyears_training_altqcd_withqcdrun2.yaml')
+    sample_config_train = os.path.abspath('configs/samples_hh4b_multimh_vs_qcd_allyears_training_altqcd_withqcdrun2.yaml')
     # sample list for testing data
     sample_config_test = os.path.abspath('configs/samples_hh4b_multimh_vs_bkg_allyears_testing.yaml')
     # output dir
-    outputdir = os.path.join(thisdir, 'output_test')
+    outputdir = os.path.join(thisdir, 'output_pnet_altqcdwithrun2_4monly_qcdonly')
     # network settings
     num_epochs = 30
     steps_per_epoch = 300
     batch_size = 256
     # specify whether to run training or only print preparatory steps
-    do_training = False
+    do_training = True
     # runmode and job settings
-    runmode = 'local'
+    runmode = 'slurm'
     #conda_activate = 'source /eos/user/l/llambrec/miniforge3/bin/activate'
     #conda_env = 'weaver'
-    slurmscript = 'sjob_weaver_test.sh'
+    slurmscript = 'sjob_weaver_pnet_altqcdwithrun2_4monly_qcdonly.sh'
     env_cmds = ([
         'source /blue/avery/llambre1.brown/miniforge3/bin/activate',
         'conda activate weaver',

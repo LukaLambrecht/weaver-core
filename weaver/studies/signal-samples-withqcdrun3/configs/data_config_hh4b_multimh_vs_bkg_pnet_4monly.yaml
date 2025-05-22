@@ -8,16 +8,17 @@ treename: Events
 selection:
     # Define the selection for the training set
     ( (n_ak4 >= 4)
-    & (dHH_NbtagM >= 3)
+    & (dHH_NbtagM == 4)
     & (dHH_HH_mass > 350)
     & (passmetfilters == 1)
     & (passjetvetomap == 1)
-    & (avgbdisc_twoldgbdiscjets > 0.55) )
+    & (avgbdisc_twoldgbdiscjets > 0.55)
+    & (np.multiply(np.multiply(np.abs(genWeight), xsecWeight), lumiwgt) < 500) )
 
 test_time_selection:
     # Define the selection for the testing set
     ( (n_ak4 >= 4)
-    & (dHH_NbtagM >= 3)
+    & (dHH_NbtagM == 4)
     & (dHH_HH_mass > 350)
     & (passmetfilters == 1)
     & (passjetvetomap == 1)
@@ -89,12 +90,14 @@ preprocess:
 
 inputs:
    # Define input features to the network
-   jet_points:
+   jet_vectors:
       length: 6
       pad_mode: wrap
       vars:
-         - [ak4_eta, null]
-         - [ak4_phi, null]
+         - [ak4_px, null]
+         - [ak4_py, null]
+         - [ak4_pz, null]
+         - [ak4_energy, null]
    jet_features:
       length: 6
       pad_mode: wrap
@@ -107,14 +110,6 @@ inputs:
          - [ak4_btag_M, null]
          - [ak4_btag_T, null]
          - [ak4_btag_XT, null]
-   jet_vectors:
-      length: 6
-      pad_mode: wrap
-      vars:
-         - [ak4_px, null]
-         - [ak4_py, null]
-         - [ak4_pz, null]
-         - [ak4_energy, null]
    jet_mask:
       length: 6
       pad_mode: constant
@@ -150,13 +145,8 @@ weights:
    reweight_threshold: 0
    reweight_load_fraction: 1.
    reweight_vars:
-      #hh_average_mass: [50., 75., 100., 125., 150., 175., 200., 250., 30000.]
-      dHH_H1_mass: [50., 75., 100., 125., 150., 175., 200., 250., 30000.]
-      dHH_H2_mass: [50., 75., 100., 125., 150., 175., 200., 250., 30000.]
-      #hh_average_mass: [50., 60., 70., 80., 90., 100., 110., 120., 130., 140., 150., 160., 170., 180., 190., 200., 250., 30000.]
-      #dHH_H1_mass: [50., 60., 70., 80., 90., 100., 110., 120., 130., 140., 150., 160., 170., 180., 190., 200., 250., 30000.]
-      #dHH_H2_mass: [50., 60., 70., 80., 90., 100., 110., 120., 130., 140., 150., 160., 170., 180., 190., 200., 250., 30000.]
-      dHH_NbtagM: [2.5, 3.5, 4.5]
+      hh_average_mass: [50., 60., 70., 80., 90., 100., 110., 120., 130., 140., 150., 160., 170., 180., 190., 200., 250., 30000.]
+      dHH_NbtagM: [-0.5, 10.5]
    reweight_discard_under_overflow: false
-   reweight_classes: [isHHto4b_mH_125, isHHto4b_mH_variations, isQCD, isTT]
-   class_weights: [1, 1, 1, 1]
+   reweight_classes: [isSignal, isQCD, isTT]
+   class_weights: [1, 1, 1]
