@@ -10,7 +10,7 @@ def writeSlurmScript(cmds, script, force=False,
         job_name=None, account=None, partition=None,
         output=None, error=None,
         nodes=1, ntasks_per_node=1, cpus_per_task=1,
-        memory=None, time=None):
+        memory=None, time=None, constraint=None):
     """
     Write a slurm submission script.
     Input arguments:
@@ -45,6 +45,7 @@ def writeSlurmScript(cmds, script, force=False,
         f.write(f'#SBATCH --cpus-per-task={cpus_per_task}\n')
         if memory is not None: f.write(f'#SBATCH --mem={memory}\n')
         if time is not None: f.write(f'#SBATCH --time={time}\n')
+        if constraint is not None: f.write(f'#SBATCH --constraint={constraint}\n')
         # write some convenient shell commands for bookkeeping and debugging
         f.write('echo "current host:" $(hostname)\n')
         f.write('echo "current directory:" $(pwd)\n')
