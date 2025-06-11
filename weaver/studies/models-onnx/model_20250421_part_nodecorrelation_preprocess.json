@@ -4,20 +4,18 @@
     "isBackground"
   ],
   "input_names": [
-    "points",
-    "features",
-    "mask",
-    "decorrelate"
+    "jet_points",
+    "jet_features",
+    "jet_vectors",
+    "jet_mask"
   ],
-  "points": {
+  "jet_points": {
     "var_names": [
-      "ak4_px",
-      "ak4_py",
-      "ak4_pz",
-      "ak4_energy"
+      "ak4_eta",
+      "ak4_phi"
     ],
     "var_infos": {
-      "ak4_px": {
+      "ak4_eta": {
         "median": 0,
         "norm_factor": 1,
         "replace_inf_value": 0,
@@ -25,23 +23,7 @@
         "upper_bound": 1e+32,
         "pad": 0
       },
-      "ak4_py": {
-        "median": 0,
-        "norm_factor": 1,
-        "replace_inf_value": 0,
-        "lower_bound": -1e+32,
-        "upper_bound": 1e+32,
-        "pad": 0
-      },
-      "ak4_pz": {
-        "median": 0,
-        "norm_factor": 1,
-        "replace_inf_value": 0,
-        "lower_bound": -1e+32,
-        "upper_bound": 1e+32,
-        "pad": 0
-      },
-      "ak4_energy": {
+      "ak4_phi": {
         "median": 0,
         "norm_factor": 1,
         "replace_inf_value": 0,
@@ -52,7 +34,7 @@
     },
     "var_length": 6
   },
-  "features": {
+  "jet_features": {
     "var_names": [
       "ak4_pt_log",
       "ak4_energy_log",
@@ -60,7 +42,8 @@
       "ak4_phi",
       "ak4_btag_L",
       "ak4_btag_M",
-      "ak4_btag_T"
+      "ak4_btag_T",
+      "ak4_btag_XT"
     ],
     "var_infos": {
       "ak4_pt_log": {
@@ -118,11 +101,62 @@
         "lower_bound": -1e+32,
         "upper_bound": 1e+32,
         "pad": 0
+      },
+      "ak4_btag_XT": {
+        "median": 0,
+        "norm_factor": 1,
+        "replace_inf_value": 0,
+        "lower_bound": -1e+32,
+        "upper_bound": 1e+32,
+        "pad": 0
       }
     },
     "var_length": 6
   },
-  "mask": {
+  "jet_vectors": {
+    "var_names": [
+      "ak4_px",
+      "ak4_py",
+      "ak4_pz",
+      "ak4_energy"
+    ],
+    "var_infos": {
+      "ak4_px": {
+        "median": 0,
+        "norm_factor": 1,
+        "replace_inf_value": 0,
+        "lower_bound": -1e+32,
+        "upper_bound": 1e+32,
+        "pad": 0
+      },
+      "ak4_py": {
+        "median": 0,
+        "norm_factor": 1,
+        "replace_inf_value": 0,
+        "lower_bound": -1e+32,
+        "upper_bound": 1e+32,
+        "pad": 0
+      },
+      "ak4_pz": {
+        "median": 0,
+        "norm_factor": 1,
+        "replace_inf_value": 0,
+        "lower_bound": -1e+32,
+        "upper_bound": 1e+32,
+        "pad": 0
+      },
+      "ak4_energy": {
+        "median": 0,
+        "norm_factor": 1,
+        "replace_inf_value": 0,
+        "lower_bound": -1e+32,
+        "upper_bound": 1e+32,
+        "pad": 0
+      }
+    },
+    "var_length": 6
+  },
+  "jet_mask": {
     "var_names": [
       "ak4_mask"
     ],
@@ -137,21 +171,5 @@
       }
     },
     "var_length": 6
-  },
-  "decorrelate": {
-    "var_names": [
-      "hh_average_mass"
-    ],
-    "var_infos": {
-      "hh_average_mass": {
-        "median": 0,
-        "norm_factor": 1,
-        "replace_inf_value": 0,
-        "lower_bound": -1e+32,
-        "upper_bound": 1e+32,
-        "pad": 0
-      }
-    },
-    "var_length": 1
   }
 }
