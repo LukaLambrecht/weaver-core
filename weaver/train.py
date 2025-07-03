@@ -830,8 +830,18 @@ def _main(args):
             torch.distributed.init_process_group(backend=args.backend)
             _logger.info(f'Using distributed PyTorch with {args.backend} backend')
         else:
+            # print available devices
+            _logger.info(f'Running on GPUs requested (--gpus = {args.gpus}).')
+            _logger.info(f'Info about available GPU devices:')
+            _logger.info(f'  - torch.cuda.is_available(): {torch.cuda.is_available()}')
+            _logger.info(f'  - torch.cuda.device_count(): {torch.cuda.device_count()}')
+            # set device
             gpus = [int(i) for i in args.gpus.split(',')]
             dev = torch.device(gpus[0])
+            # print details about chosen device
+            _logger.info(f'Info about chosen device:')
+            _logger.info(f'  - address: {torch.cuda.device(0)}')
+            _logger.info(f'  - name: {torch.cuda.get_device_name(0)}')
     else:
         # run on CPUs
         gpus = None

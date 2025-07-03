@@ -25,7 +25,7 @@ if __name__=='__main__':
     sample_config_test = os.path.abspath('configs/samples_hh4b_multimh_vs_syndata_testing.yaml')
     #sample_config_test = os.path.abspath('configs/samples_hh4b_multimh_vs_bkg_allyears_testing.yaml')
     # output dir
-    outputdir = os.path.join(thisdir, 'output_pt35_syndata')
+    outputdir = os.path.join(thisdir, 'output_test')
     # network settings
     num_epochs = 30
     steps_per_epoch = 300
@@ -33,15 +33,16 @@ if __name__=='__main__':
     # specify whether to run training or only print preparatory steps
     do_training = True
     # runmode and job settings
-    runmode = 'slurm'
+    runmode = 'local'
     #conda_activate = 'source /eos/user/l/llambrec/miniforge3/bin/activate'
     #conda_env = 'weaver'
-    slurmscript = 'sjob_weaver_pt35_syndata.sh'
+    slurmscript = 'sjob_weaver_test_syndata.sh'
     env_cmds = ([
-        'source /blue/avery/llambre1.brown/miniforge3/bin/activate',
-        'conda activate weaver',
+        'env_path=/blue/avery/llambre1.brown/miniforge3/envs/weaver/bin/',
+        'export PATH=$env_path:$PATH',
         f'cd {thisdir}'
     ])
+    gpus = '0'
 
     # check if all config files exist
     files_to_check = [data_config, model_config, sample_config_train, sample_config_test]
@@ -89,6 +90,7 @@ if __name__=='__main__':
     cmd += f' --model-prefix {model_prefix}'
     cmd += f' --data-test {this_sample_config_test}'
     cmd += f' --predict-output {test_output}'
+    cmd += f' --gpus {gpus}'
     # data loading options
     cmd += ' --in-memory --fetch-step 1'
     cmd += ' --copy-inputs'
@@ -104,7 +106,14 @@ if __name__=='__main__':
           jobflavour='workday', conda_activate=conda_activate, conda_env=conda_env)
     elif runmode=='slurm':
         job_name = os.path.splitext(slurmscript)[0]
-        st.submitCommandAsSlurmJob(cmd, script=slurmscript,
-                job_name=job_name, env_cmds=env_cmds,
-                memory='16G',
-                time='05:00:00')
+        slurm_options = {
+          'job_name': job_name,
+          'env_cmds': env_cmds,
+          'memory': '16G',
+          'time': '05:00:00',
+          'constraint': 'el9'
+        }
+        if gpus!='""':
+            slurm_options['gres'] = 'gpu:1'
+            slurm_options['gpus'] = '1'
+        st.submitCommandAsSlurmJob(cmd, slurmscript, **slurm_options)
