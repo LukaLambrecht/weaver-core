@@ -1,4 +1,8 @@
+# Implementation of distance correlation (DisCo) between two variables
+
+
 import torch
+
 
 def distance_correlation(var_1, var_2, weight=None, power=1):
     # calculate distance correlation between var_1 and var_2.
