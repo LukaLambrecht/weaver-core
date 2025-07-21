@@ -1,0 +1,8 @@
+# signal samples
+- /blue/avery/llambre1.brown/hhto4b-samples/ntuples-sig/ntuples_*_0L/mc/pieces/HHto4b_mH_125_*.root
+
+# background samples
+- /blue/avery/marinakolosova/Run3_HHTo4B_NTuples/2021/Synthetic/synthetic_data_2022_preEE_tree_10May2025.root
+- /blue/avery/marinakolosova/Run3_HHTo4B_NTuples/2022/Synthetic/synthetic_data_2022_postEE_tree_10May2025.root
+- /blue/avery/marinakolosova/Run3_HHTo4B_NTuples/2023/Synthetic/synthetic_data_2023_preBPix_tree_10May2025.root
+- /blue/avery/marinakolosova/Run3_HHTo4B_NTuples/2020/Synthetic/synthetic_data_2023_postBPix_tree_10May2025.root

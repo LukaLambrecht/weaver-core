@@ -71,7 +71,8 @@ if __name__=='__main__':
     }
     score_slices = [0., 0.5, 0.75, 0.9, 0.95, 1]
     phase_space_split = {
-      'all': {}
+      'all': {},
+      '3T': {'dHH_NbtagT': [2.5, 4.5]},
     }
 
     # find all branches to read

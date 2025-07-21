@@ -20,12 +20,12 @@ if __name__=='__main__':
     # model config
     model_config = os.path.abspath('configs/model_pnet.py')
     # sample list for training data
-    sample_config_train = os.path.abspath('configs/samples_hh4b_multimh_vs_syndata_training.yaml')
+    sample_config_train = os.path.abspath('configs/samples_hh4b_multimh_vs_syndata_training_mh125_feynnetpairing.yaml')
     # sample list for testing data
-    sample_config_test = os.path.abspath('configs/samples_hh4b_multimh_vs_syndata_testing.yaml')
+    sample_config_test = os.path.abspath('configs/samples_hh4b_multimh_vs_syndata_testing_feynnetpairing.yaml')
     #sample_config_test = os.path.abspath('configs/samples_hh4b_multimh_vs_bkg_allyears_testing.yaml')
     # output dir
-    outputdir = os.path.join(thisdir, 'output_test')
+    outputdir = os.path.join(thisdir, 'output_noextrasigsamples_feynnetpairing_alsofortesting')
     # network settings
     num_epochs = 30
     steps_per_epoch = 300
@@ -33,10 +33,10 @@ if __name__=='__main__':
     # specify whether to run training or only print preparatory steps
     do_training = True
     # runmode and job settings
-    runmode = 'local'
+    runmode = 'slurm'
     #conda_activate = 'source /eos/user/l/llambrec/miniforge3/bin/activate'
     #conda_env = 'weaver'
-    slurmscript = 'sjob_weaver_test_syndata.sh'
+    slurmscript = 'sjob_weaver_noextrasigsamples_feynnetpairing_alsofortesting.sh'
     env_cmds = ([
         'env_path=/blue/avery/llambre1.brown/miniforge3/envs/weaver/bin/',
         'export PATH=$env_path:$PATH',
@@ -90,7 +90,7 @@ if __name__=='__main__':
     cmd += f' --model-prefix {model_prefix}'
     cmd += f' --data-test {this_sample_config_test}'
     cmd += f' --predict-output {test_output}'
-    cmd += f' --gpus {gpus}'
+    if gpus is not None: cmd += f' --gpus {gpus}'
     # data loading options
     cmd += ' --in-memory --fetch-step 1'
     cmd += ' --copy-inputs'

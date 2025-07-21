@@ -7,13 +7,15 @@ treename: Events
 
 selection:
     # Define the selection for the training set
+    # note: temporarily disabled (custom_Flag_ecalBadCalibFilter == 1)
+    #       since it was accidentally set to 0 for the feynnetpairing ntuples...
     ( (event % 2 == 0)
     & (n_ak4 >= 4)
     & (dHH_NbtagM == 4)
+    & (dHH_NbtagT >= 3)
     & (dHH_HH_mass > 350)
     & (passmetfilters == 1)
     & (passjetvetomap == 1)
-    & (custom_Flag_ecalBadCalibFilter == 1)
     & (avgbdisc_twoldgbdiscjets > 0.55) )
 
 test_time_selection:
@@ -21,10 +23,10 @@ test_time_selection:
     ( (event % 2 == 1)
     & (n_ak4 >= 4)
     & (dHH_NbtagM == 4)
+    & (dHH_NbtagT >= 3)
     & (dHH_HH_mass > 350)
     & (passmetfilters == 1)
     & (passjetvetomap == 1)
-    & (custom_Flag_ecalBadCalibFilter == 1)
     & (avgbdisc_twoldgbdiscjets > 0.55) )
 
 file_magic:
@@ -125,6 +127,7 @@ observers:
   - dHH_H2_mass
   - hh_average_mass
   - dHH_NbtagM
+  - dHH_NbtagT
   - isHHto4b_mH_125
   - isSignal
   - isBackground
@@ -137,8 +140,9 @@ weights:
    reweight_threshold: 0
    reweight_load_fraction: 1.
    reweight_vars:
-      hh_average_mass: [50., 60., 70., 80., 90., 100., 110., 120., 130., 140., 150., 160., 170., 180., 190., 200., 250., 30000.]
-      dHH_NbtagM: [0, 10]
+     hh_average_mass: [50., 60., 70., 80., 90., 100., 110., 120., 130., 140., 150., 160., 170., 180., 190., 200., 250., 30000.]
+     #hh_average_mass: [0, 30000] 
+     dHH_NbtagM: [0, 10]
    reweight_discard_under_overflow: false
-   reweight_classes: [isSignal, isBackground]
+   reweight_classes: [isBackground, isSignal]
    class_weights: [1, 1]

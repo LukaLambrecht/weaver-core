@@ -820,7 +820,7 @@ def _main(args):
     else: _logger.info('Running in prediction mode')
 
     # set training (or inference) device
-    if args.gpus:
+    if args.gpus is not None and len(args.gpus)>0:
         # distributed training
         if args.backend is not None:
             local_rank = args.local_rank
