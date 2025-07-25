@@ -25,7 +25,10 @@ def distance_correlation(var_1, var_2, weight=None, power=1):
 
     # initialize size and weights
     size = len(var_1)
-    if weight is None: weight = torch.ones(size)
+    if weight is None:
+        weight = torch.ones(size)
+        # transfer weights to GPU
+        if torch.cuda.is_available(): weight = weight.to('cuda')
 
     # make distance matrix for variable 1
     columns = var_1.view(-1, 1).repeat(1, size).view(size, size)
