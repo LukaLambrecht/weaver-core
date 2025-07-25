@@ -1,5 +1,5 @@
 # signal samples
-- /blue/avery/llambre1.brown/hhto4b-samples/ntuples-from-lxplus-backup/ntuples-v2-part1-feynnetpairing/ntuples_*_0L/mc/pieces/HHto4b_mH_125_*.root
+- /blue/avery/llambre1.brown/hhto4b-samples/ntuples-from-lxplus-backup/ntuples-v2-part[1,2]-feynnetpairing/ntuples_*_0L/mc/pieces/HHto4b_mH_125_*.root
 
 # background samples
 - /blue/avery/llambre1.brown/hhto4b-samples/ntuples-from-lxplus-backup/ntuples-syndata-feynnetpairing/ntuples_*_0L/data/pieces/SyntheticData*.root

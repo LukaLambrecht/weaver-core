@@ -69,10 +69,12 @@ new_variables:
     isHHto4b_mH_180: sample==180
     isHHto4b_mH_190: sample==190
     isHHto4b_mH_200: sample==200
+    isHHto4b: sample>10
     isHHto4b_mH_variations: ((sample>10) & (sample!=125))
     isSignal: sample>10
     isBackground: sample<10
 
+    #ak4_mask: ak.ones_like(ak4_pt)
     ak4_mask: ((ak4_pt > 35) & (np.abs(ak4_eta) < 2.5))
     ak4p4: _p4_from_ptetaphim(ak4_pt, ak4_eta, ak4_phi, ak4_mass)
     ak4_px: ak4p4.px
@@ -88,15 +90,13 @@ preprocess:
 
 inputs:
    # Define input features to the network
-   jet_vectors:
+   points:
       length: 6
       pad_mode: wrap
       vars:
-         - [ak4_px, null]
-         - [ak4_py, null]
-         - [ak4_pz, null]
-         - [ak4_energy, null]
-   jet_features:
+         - [ak4_eta, null]
+         - [ak4_phi, null]
+   features:
       length: 6
       pad_mode: wrap
       vars:
@@ -108,7 +108,15 @@ inputs:
          - [ak4_btag_M, null]
          - [ak4_btag_T, null]
          - [ak4_btag_XT, null]
-   jet_mask:
+   vectors:
+      length: 6
+      pad_mode: wrap
+      vars:
+         - [ak4_px, null]
+         - [ak4_py, null]
+         - [ak4_pz, null]
+         - [ak4_energy, null]
+   mask:
       length: 6
       pad_mode: constant
       vars:
@@ -144,5 +152,5 @@ weights:
      dHH_H2_mass: [50., 60., 70., 80., 90., 100., 110., 120., 130., 140., 150., 160., 170., 180., 190., 200., 250., 30000.]
      #dHH_NbtagM: [0, 10]
    reweight_discard_under_overflow: false
-   reweight_classes: [isBackground, isSignal]
+   reweight_classes: [isSignal, isBackground]
    class_weights: [1, 1]

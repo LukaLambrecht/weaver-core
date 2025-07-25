@@ -15,15 +15,17 @@ if __name__=='__main__':
     # common settings
     weaverdir = os.path.join(weavercoredir, 'weaver')
     # data config
-    data_config = os.path.abspath('configs/data_config_pnet_train_syndata_test_syndata.yaml')
+    #data_config = os.path.abspath('configs/data_config_pnet_train_syndata_test_syndata.yaml')
+    data_config = os.path.abspath('configs/data_config_part_train_syndata_test_syndata.yaml')
     # model config
-    model_config = os.path.abspath('configs/model_pnet.py')
+    #model_config = os.path.abspath('configs/model_pnet.py')
+    model_config = os.path.abspath('configs/model_part.py')
     # sample list for training data
     sample_config_train = os.path.abspath('configs/samples_hh4b_multimh_vs_syndata_training_feynnetpairing.yaml')
     # sample list for testing data
-    sample_config_test = os.path.abspath('configs/samples_hh4b_multimh_vs_syndata_testing_mindiagpairing.yaml')
+    sample_config_test = os.path.abspath('configs/samples_hh4b_multimh_vs_syndata_testing_feynnetpairing.yaml')
     # output dir
-    outputdir = os.path.join(thisdir, 'output_withextrasigsamples_mindiagtesting')
+    outputdir = os.path.join(thisdir, 'output_part_extrasamples_doubleresampling')
     # network settings
     num_epochs = 30
     steps_per_epoch = 300
@@ -34,7 +36,7 @@ if __name__=='__main__':
     runmode = 'slurm'
     #conda_activate = 'source /eos/user/l/llambrec/miniforge3/bin/activate'
     #conda_env = 'weaver'
-    slurmscript = 'sjob_weaver_withextrasigsamples_mindiagtesting.sh'
+    slurmscript = 'sjob_weaver_part_extrasamples_doubleresampling.sh'
     env_cmds = ([
         'env_path=/blue/avery/llambre1.brown/miniforge3/envs/weaver/bin/',
         'export PATH=$env_path:$PATH',

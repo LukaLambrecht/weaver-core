@@ -1,5 +1,5 @@
 # signal samples
-- /blue/avery/llambre1.brown/hhto4b-samples/ntuples-sig-part2/ntuples_*_0L/mc/pieces/HHto4b_mH_125_*.root
+- /blue/avery/llambre1.brown/hhto4b-samples/ntuples-sig-part[1,2]/ntuples_*_0L/mc/pieces/HHto4b_mH_125_*.root
 
 # background samples
 - /blue/avery/marinakolosova/Run3_HHTo4B_NTuples/2021/Synthetic/synthetic_data_2022_preEE_tree_10May2025.root
