@@ -380,7 +380,13 @@ class SimpleIterDataset(torch.utils.data.IterableDataset):
                 _logger.info(
                     'Found file %s w/ auto-generated preprocessing information, will use that instead!' %
                     data_config_file)
-            self._data_config = DataConfig.load(data_config_file, load_observers=False, extra_selection=extra_selection)
+            # note: now disabled the load_observers=False,
+            #       so observer variables will be loaded in training as well.
+            #       they are usually ignored, but are used in my plotting scripts.
+            # note: seems to give problems in some cases with on-the-fly defined variables,
+            #       so disable again when needed...
+            self._data_config = DataConfig.load(data_config_file, load_observers=False,
+                    extra_selection=extra_selection)
         else:
             self._data_config = DataConfig.load(
                 data_config_file, load_reweight_info=False, extra_test_selection=extra_selection)
