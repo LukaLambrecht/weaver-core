@@ -359,12 +359,15 @@ def test_load(args):
     # get the file patterns for testing data in the case of a provided sample list
     if len(args.data_test)==1 and args.data_test[0].endswith('.yaml'):
         samplelist = args.data_test[0]
-        _logger.info(f'Reading sample list {samplelist} for testing data')
+        _logger.info(f'Reading sample list {samplelist} for testing data...')
         args.data_test = read_sample_list(samplelist)
 
     # get the files for testing data
+    _logger.info(f'Finding files for testing data...')
     test_file_dict, test_files = parse_file_patterns(args.data_test,
         copy_inputs=args.copy_inputs, local_rank=None)
+    _logger.info(f'Found following files:')
+    _logger.info(test_file_dict)
 
     def get_test_loader(name):
         filelist = test_file_dict[name]
@@ -374,7 +377,10 @@ def test_load(args):
         test_data = SimpleIterDataset({name: filelist}, args.data_config, for_training=False,
                                       extra_selection=args.extra_test_selection,
                                       load_range_and_fraction=((0, 1), args.data_fraction),
-                                      fetch_by_files=True, fetch_step=1,
+                                      #fetch_by_files=True, fetch_step=1,
+                                      # update for inference on data
+                                      # (since default approach tries to read the full data file)
+                                      fetch_by_files=False, fetch_step=0.01,
                                       name='test_' + name)
         test_loader = DataLoader(test_data, num_workers=num_workers, batch_size=args.batch_size,
                         drop_last=False, pin_memory=True)

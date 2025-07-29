@@ -17,18 +17,20 @@ if __name__=='__main__':
     # data config
     data_config = os.path.abspath('configs/data_config_part_disco.yaml')
     # model config
-    model_config = os.path.abspath('../disco-withsyndata-feynnetpairing/results_20250725/output_part/alpha_5p00/training_0/model_config.py')
+    #model_config = os.path.abspath('../disco-withsyndata-feynnetpairing/results_20250725/output_part/alpha_5p00/training_0/model_config.py')
+    model_config = os.path.abspath('../disco-withsyndata/results_20250522/output_part/alpha_10p00/training_0/model_config.py')
     # model weights
-    model_weights = os.path.abspath('../disco-withsyndata-feynnetpairing/results_20250725/output_part/alpha_5p00/training_0/network_best_epoch_state.pt')
+    #model_weights = os.path.abspath('../disco-withsyndata-feynnetpairing/results_20250725/output_part/alpha_5p00/training_0/network_best_epoch_state.pt')
+    model_weights = os.path.abspath('../disco-withsyndata/results_20250522/output_part/alpha_10p00/training_0/network_best_epoch_state.pt')
     # sample list
     sample_config = os.path.abspath('configs/samples_testing.yaml')
     # output dir
-    outputdir = os.path.join(thisdir, 'output_test')
+    outputdir = os.path.join(thisdir, 'output_test_old2')
     # runmode and job settings
     runmode = 'slurm'
     #conda_activate = 'source /eos/user/l/llambrec/miniforge3/bin/activate'
     #conda_env = 'weaver'
-    slurmscript = 'sjob_weaver_test.sh'
+    slurmscript = 'sjob_weaver_test_old2.sh'
     env_cmds = ([
         'env_path=/blue/avery/llambre1.brown/miniforge3/envs/weaver/bin/',
         'export PATH=$env_path:$PATH',
@@ -91,7 +93,7 @@ if __name__=='__main__':
         slurm_options = {
           'job_name': job_name,
           'env_cmds': env_cmds,
-          'memory': '16G',
+          'memory': '32G',
           'time': '05:00:00',
           'constraint': 'el9'
         }

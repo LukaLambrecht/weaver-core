@@ -67,8 +67,8 @@ def plot_scores(events,
 
                 # make histograms
                 fig, ax = plt.subplots()
-                bins = np.linspace(np.amin(this_scores), np.amax(this_scores), num=51)
-                #bins = np.linspace(0.95, 1, num=51)
+                #bins = np.linspace(np.amin(this_scores), np.amax(this_scores), num=51)
+                bins = np.linspace(0, 1, num=51)
                 hist_sig = np.histogram(scores_sig, bins=bins, weights=weights_sig)[0]
                 norm_sig = np.sum( np.multiply(hist_sig, np.diff(bins) ) )
                 staterrors_sig = np.sqrt(np.histogram(scores_sig, bins=bins,

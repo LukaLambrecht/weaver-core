@@ -102,7 +102,8 @@ def plot_scores_multi(events,
                 # make a histogram
                 label = category_settings['label']
                 if len(variable['bins'])>2: label += ' ' + var_bin_label
-                bins = np.linspace(np.amin(scores), np.amax(scores), num=31)
+                #bins = np.linspace(np.amin(scores), np.amax(scores), num=31)
+                bins = np.linspace(0, 1, num=41)
                 hist = np.histogram(this_values, bins=bins, weights=this_weights)[0]
                 norm = np.sum( np.multiply(hist, np.diff(bins) ) )
                 staterrors = np.sqrt(np.histogram(this_values, bins=bins, weights=np.square(this_weights))[0])
