@@ -1,0 +1,13 @@
+# Note: currently using the same testing samples (for signal and syn. data)
+# as in the original training + testing of the model, which rely on the assumption
+# that the training/testing set is split based on even/odd event number.
+# This is ok to do in data as well, as we can anyway only compare normalized distributions.
+
+# signal samples
+- /blue/avery/llambre1.brown/hhto4b-samples/ntuples-from-lxplus-backup/ntuples-v2-part[1,2]-feynnetpairing/ntuples_*_0L/mc/pieces/HHto4b_mH_125_*.root
+
+# background samples
+- /blue/avery/llambre1.brown/hhto4b-samples/ntuples-from-lxplus-backup/ntuples-syndata-feynnetpairing/ntuples_*_0L/data/pieces/SyntheticData*.root
+
+# data
+- /blue/avery/llambre1.brown/hhto4b-samples/ntuples-from-lxplus-backup/ntuples-data-feynnetpairing/ntuples_*_0L/data/*.root

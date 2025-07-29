@@ -1,0 +1,151 @@
+#####################################
+# Data configuration for hh4b study #
+#####################################
+
+
+treename: Events
+
+selection:
+    # Define the selection for the training set
+    # note: temporarily disabled (custom_Flag_ecalBadCalibFilter == 1)
+    #       since it was accidentally set to 0 for the feynnetpairing ntuples...
+    ( (event % 2 == 0)
+    & (n_ak4 >= 4)
+    & (dHH_NbtagM == 4)
+    & (dHH_HH_mass > 350)
+    & (passmetfilters == 1)
+    & (passjetvetomap == 1)
+    & (avgbdisc_twoldgbdiscjets > 0.55) )
+
+test_time_selection:
+    # Define the selection for the testing set
+    ( (event % 2 == 1)
+    & (n_ak4 >= 4)
+    & (dHH_NbtagM == 4)
+    & (dHH_HH_mass > 350)
+    & (passmetfilters == 1)
+    & (passjetvetomap == 1)
+    & (avgbdisc_twoldgbdiscjets > 0.55) )
+
+file_magic:
+  # Match file names to custom sample index
+  sample:
+    HHto4b_mH_050_powheg_pythia8_Run3_.+\.root: 50
+    HHto4b_mH_060_powheg_pythia8_Run3_.+\.root: 60
+    HHto4b_mH_070_powheg_pythia8_Run3_.+\.root: 70
+    HHto4b_mH_080_powheg_pythia8_Run3_.+\.root: 80
+    HHto4b_mH_090_powheg_pythia8_Run3_.+\.root: 90
+    HHto4b_mH_100_powheg_pythia8_Run3_.+\.root: 100
+    HHto4b_mH_110_powheg_pythia8_Run3_.+\.root: 110
+    HHto4b_mH_120_powheg_pythia8_Run3_.+\.root: 120
+    HHto4b_mH_125_powheg_pythia8_Run3_.+\.root: 125
+    HHto4b_mH_130_powheg_pythia8_Run3_.+\.root: 130
+    HHto4b_mH_140_powheg_pythia8_Run3_.+\.root: 140
+    HHto4b_mH_150_powheg_pythia8_Run3_.+\.root: 150
+    HHto4b_mH_160_powheg_pythia8_Run3_.+\.root: 160
+    HHto4b_mH_170_powheg_pythia8_Run3_.+\.root: 170
+    HHto4b_mH_180_powheg_pythia8_Run3_.+\.root: 180
+    HHto4b_mH_190_powheg_pythia8_Run3_.+\.root: 190
+    HHto4b_mH_200_powheg_pythia8_Run3_.+\.root: 200
+    synthetic_data.+\.root: 1
+    SyntheticData.+\.root: 1
+    jetmet_tree.root: 0
+    parkinghh_tree.root: 0
+
+new_variables:
+    # Define new variables as a function of existing variables
+    hh_average_mass: (0.5*(dHH_H1_mass+dHH_H2_mass))
+    isHHto4b_mH_050: sample==50
+    isHHto4b_mH_060: sample==60
+    isHHto4b_mH_070: sample==70
+    isHHto4b_mH_080: sample==80
+    isHHto4b_mH_090: sample==90
+    isHHto4b_mH_100: sample==100
+    isHHto4b_mH_110: sample==110
+    isHHto4b_mH_120: sample==120
+    isHHto4b_mH_125: sample==125
+    isHHto4b_mH_130: sample==130
+    isHHto4b_mH_140: sample==140
+    isHHto4b_mH_150: sample==150
+    isHHto4b_mH_160: sample==160
+    isHHto4b_mH_170: sample==170
+    isHHto4b_mH_180: sample==180
+    isHHto4b_mH_190: sample==190
+    isHHto4b_mH_200: sample==200
+    isHHto4b: sample>10
+    isHHto4b_mH_variations: ((sample>10) & (sample!=125))
+    isSignal: sample>10
+    isBackground: ((sample>0) & (sample<10))
+    isData: sample==0
+
+    #ak4_mask: ak.ones_like(ak4_pt)
+    ak4_mask: ((ak4_pt > 35) & (np.abs(ak4_eta) < 2.5))
+    ak4p4: _p4_from_ptetaphim(ak4_pt, ak4_eta, ak4_phi, ak4_mass)
+    ak4_px: ak4p4.px
+    ak4_py: ak4p4.py
+    ak4_pz: ak4p4.pz
+    ak4_energy: ak4p4.energy
+    ak4_pt_log: np.log(ak4_pt)
+    ak4_energy_log: np.log(ak4_energy)
+
+preprocess:
+   method: manual
+   data_fraction: 1
+
+inputs:
+   # Define input features to the network
+   points:
+      length: 6
+      pad_mode: wrap
+      vars:
+         - [ak4_eta, null]
+         - [ak4_phi, null]
+   features:
+      length: 6
+      pad_mode: wrap
+      vars:
+         - [ak4_pt_log, 4, 1]
+         - [ak4_energy_log, 4, 1]
+         - [ak4_eta, null]
+         - [ak4_phi, null]
+         - [ak4_btag_L, null]
+         - [ak4_btag_M, null]
+         - [ak4_btag_T, null]
+         - [ak4_btag_XT, null]
+   vectors:
+      length: 6
+      pad_mode: wrap
+      vars:
+         - [ak4_px, null]
+         - [ak4_py, null]
+         - [ak4_pz, null]
+         - [ak4_energy, null]
+   mask:
+      length: 6
+      pad_mode: constant
+      vars:
+         - [ak4_mask, null]
+
+   decorrelate:
+      length: 1
+      vars:
+         - hh_average_mass
+
+labels:
+   type: simple
+   value: [isSignal, isBackground]
+
+observers:
+  # Make sure the decorrelated variable is used as observer,
+  # to make post-training conclusions.
+  - dHH_H1_mass
+  - dHH_H2_mass
+  - hh_average_mass
+  - dHH_NbtagM
+  - dHH_NbtagT
+  - isHHto4b_mH_125
+  - isSignal
+  - isBackground
+  - isData
+
+weights:
