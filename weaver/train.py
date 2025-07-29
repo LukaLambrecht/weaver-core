@@ -1007,17 +1007,17 @@ def _main(args):
                     shutil.copy2(args.model_prefix + '_epoch-%d_state.pt' % epoch,
                                  args.model_prefix + '_best_epoch_state.pt')
 
-    # save the training and validation history
-    if len(history_train) > 0:
-        history_train_file = args.model_prefix + '_history_train.json'
-        with open(history_train_file, 'w') as f:
-            json.dump(history_train, f)
-        _logger.info(f'Model training history saved to {history_train_file}')
-    if len(history_validation) > 0:
-        history_validation_file = args.model_prefix + '_history_validation.json'
-        with open(history_validation_file, 'w') as f:
-            json.dump(history_validation, f)
-        _logger.info(f'Model validation history saved to {history_validation_file}')
+        # save the training and validation history
+        if len(history_train) > 0:
+            history_train_file = args.model_prefix + '_history_train.json'
+            with open(history_train_file, 'w') as f:
+                json.dump(history_train, f)
+            _logger.info(f'Model training history saved to {history_train_file}')
+        if len(history_validation) > 0:
+            history_validation_file = args.model_prefix + '_history_validation.json'
+            with open(history_validation_file, 'w') as f:
+                json.dump(history_validation, f)
+            _logger.info(f'Model validation history saved to {history_validation_file}')
 
     # do testing if requested
     if args.data_test:
