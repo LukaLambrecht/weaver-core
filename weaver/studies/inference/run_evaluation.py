@@ -1,4 +1,4 @@
-# Do model evaluation specifically for HHto4b vs synthetic data models
+# Do model evaluation
 
 import os
 import sys

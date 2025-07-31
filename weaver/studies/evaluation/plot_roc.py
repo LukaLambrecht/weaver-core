@@ -95,10 +95,13 @@ def plot_scores(events,
                         edges=bins, fill=True, alpha=0.15)
 
                 # plot aesthetics
+                ylim_default = ax.get_ylim()
+                ax.set_ylim((0., ylim_default[1]*1.3))
+                ax.grid(which='both')
                 ax.set_xlabel('Classifier output score', fontsize=12)
                 ax.set_ylabel('Events (normalized)', fontsize=12)
                 ax.set_title(f'Score distribution', fontsize=12)
-                txt = ax.text(0.95, 0.7, 'AUC: {:.2f}'.format(auc), fontsize=12,
+                txt = ax.text(0.95, 0.95, 'AUC: {:.2f}'.format(auc), fontsize=12,
                         ha='right', va='top', transform=ax.transAxes)
                 txt.set_bbox(dict(facecolor='white', alpha=0.8))
                 leg = ax.legend(fontsize=10)
@@ -112,6 +115,7 @@ def plot_scores(events,
                 print(f'Saved figure {figname}.')
     
                 # same with log scale
+                ax.autoscale()
                 ax.set_yscale('log')
                 fig.tight_layout()
                 figname = os.path.join(outputdir,
@@ -195,6 +199,7 @@ def plot_roc(events,
                 # other plot settings
                 ax.plot(efficiency_bkg, efficiency_bkg,
                   color='darkblue', linewidth=3, linestyle='--', label='Baseline')
+                ax.grid(which='both')
                 ax.set_xlabel('Background pass-through', fontsize=12)
                 ax.set_ylabel('Signal efficiency', fontsize=12)
                 leg = ax.legend()

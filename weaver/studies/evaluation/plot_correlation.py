@@ -85,11 +85,12 @@ def plot_correlation(events,
             im = ax.imshow(hist, cmap='plasma', interpolation='none', origin='lower', aspect='auto',
                         extent=(var_bins[0], var_bins[-1], score_bins[0], score_bins[-1]),
                         norm=mpl.colors.LogNorm(vmin=1e-2, vmax=1))
-            fig.colorbar(im, ax=ax, label='Density')
+            colorbar = fig.colorbar(im, ax=ax)
+            colorbar.set_label(label='Density (normalized to max. 1)', fontsize=12)
             ax.set_xlabel(variable['label'], fontsize=12)
             ax.set_ylabel('Classifier output score', fontsize=12)
             ax.set_title(f'Correlation between {varname} and classifier output score', fontsize=12)
-            txt = ax.text(0.95, 0.95, f'{category_settings["label"]} category', fontsize=12,
+            txt = ax.text(0.95, 0.95, f'{category_settings["label"]}', fontsize=12,
                       ha='right', va='top', transform=ax.transAxes)
             txt.set_bbox(dict(facecolor='white', alpha=0.8))
             figname = os.path.join(outputdir,
@@ -123,6 +124,7 @@ def plot_correlation(events,
             for idx, (cslice, clabel) in enumerate(zip(values_in_slices, labels)):
                 hist = np.histogram(cslice[0], bins=bins, weights=cslice[1])[0]
                 norm = np.sum( np.multiply(hist, np.diff(bins) ) )
+                if norm<1e-12: continue
                 staterrors = np.sqrt(np.histogram(cslice[0], bins=bins, weights=np.square(cslice[1]))[0])
                 ax.stairs(hist/norm, edges=bins,
                   color=cmap(idx), label=clabel, linewidth=2)
@@ -131,7 +133,8 @@ def plot_correlation(events,
             ax.set_xlabel(variable['label'], fontsize=12)
             ax.set_ylabel('Events (normalized)', fontsize=12)
             ax.set_title(f'Correlation between {varname} and classifier output score', fontsize=12)
-            txt = ax.text(0.05, 0.95, f'{category_settings["label"]} category', fontsize=12,
+            ax.set_ylim((0., ax.get_ylim()[1]*1.3))
+            txt = ax.text(0.05, 0.95, f'{category_settings["label"]}', fontsize=12,
                     ha='left', va='top', transform=ax.transAxes)
             txt.set_bbox(dict(facecolor='white', alpha=0.5))
             leg = ax.legend(fontsize=12)

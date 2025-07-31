@@ -79,6 +79,9 @@ def plot_scores_multi(events,
         # loop over bins in secondary variable
         nids = len(variable['bins'])
         if nids<=2: nids = 1
+        # temporary: skip additional binning for signal
+        # (maybe later add as argument instead of hard-coding)
+        if category_name=='HH': nids = 1
         # (if only one bin (or invalid) was provided,
         #  only plot total score, not binned in secondary variable)
         for idx in range(nids):
@@ -119,6 +122,8 @@ def plot_scores_multi(events,
     ax.set_xlabel('Classifier output score', fontsize=12)
     ax.set_ylabel('Events (normalized)', fontsize=12)
     ax.set_title(f'Score distribution', fontsize=12)
+    ylim_default= ax.get_ylim()
+    ax.set_ylim((0., ylim_default[1]*1.3))
     leg = ax.legend(fontsize=10)
     for lh in leg.legend_handles:
         lh.set_alpha(1)
@@ -129,6 +134,7 @@ def plot_scores_multi(events,
     print(f'Saved figure {figname}.')
     
     # same with log scale
+    ax.autoscale()
     ax.set_yscale('log')
     fig.tight_layout()
     figname = os.path.join(outputdir, f'scores_multi_log.png')
@@ -220,6 +226,7 @@ def plot_roc_multi(events,
       color='darkblue', linewidth=3, linestyle='--', label='Baseline')
     ax.set_xlabel('Background pass-through', fontsize=12)
     ax.set_ylabel('Signal efficiency', fontsize=12)
+    ax.grid(which='both')
     leg = ax.legend()
     fig.tight_layout()
     figname = os.path.join(outputdir, 'roc_multi.png')

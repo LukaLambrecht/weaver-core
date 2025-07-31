@@ -55,11 +55,15 @@ def plot_correlation_multi(events,
         # loop over categories
         for category_name, category_settings in categories.items():
 
+            # temporary: skip additional binning for signal
+            # (maybe later add as argument instead of hard-coding)
+            this_score_bins = score_bins[:]
+            if category_name=='HH': this_score_bins = [score_bins[0], score_bins[-1]]
+        
             # loop over score bins
-            slices = []
-            for idx in range(len(score_bins)-1):
-                minscore = score_bins[idx]
-                maxscore = score_bins[idx+1]
+            for idx in range(len(this_score_bins)-1):
+                minscore = this_score_bins[idx]
+                maxscore = this_score_bins[idx+1]
                 score_bin_label = '({:.2f} - {:.2f})'.format(minscore, maxscore)
 
                 # get correlation variable in score bin
@@ -71,6 +75,7 @@ def plot_correlation_multi(events,
                 bins = variable['bins']
                 hist = np.histogram(this_values, bins=bins, weights=this_weights)[0]
                 norm = np.sum( np.multiply(hist, np.diff(bins) ) )
+                if norm<1e-12: continue
                 staterrors = np.sqrt(np.histogram(this_values, bins=bins, weights=np.square(this_weights))[0])
                 ax.stairs(hist/norm, edges=bins,
                   color = category_settings['color'],
@@ -83,6 +88,7 @@ def plot_correlation_multi(events,
         
         ax.set_xlabel(variable['label'], fontsize=12)
         ax.set_ylabel('Events (normalized)', fontsize=12)
+        ax.set_ylim((0., ax.get_ylim()[1]*1.3))
         ax.set_title(f'Correlation between {varname} and classifier output score', fontsize=12)
         leg = ax.legend(fontsize=10)
         for lh in leg.legend_handles:
