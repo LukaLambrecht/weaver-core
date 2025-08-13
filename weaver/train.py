@@ -123,7 +123,9 @@ parser.add_argument('--load-epoch', type=int, default=None,
 parser.add_argument('--start-lr', type=float, default=5e-3,
                     help='start learning rate')
 parser.add_argument('--batch-size', type=int, default=128,
-                    help='batch size')
+                    help='Batch size used in training and validation.')
+parser.add_argument('--predict-batch-size', type=int, default=-1,
+                    help='Batch size used in testing/prediction (default: same as training batch size, set by args.batch_size).')
 parser.add_argument('--use-amp', action='store_true', default=False,
                     help='use mixed precision training (fp16)')
 parser.add_argument('--gpus', type=str, default='',
@@ -133,7 +135,7 @@ parser.add_argument('--gpus', type=str, default='',
                       + ' To use multiple GPUs, set it as a comma separated list, e.g., "1,2,3,4".')
 parser.add_argument('--predict-gpus', type=str, default=None,
                     help='Device for the testing.'
-                      + ' See `--gpus` for allowed options. If None (default), use the same as `--gpus`')
+                      + ' See `--gpus` for allowed options. If None (default), use the same as `--gpus`.')
 parser.add_argument('--num-workers', type=int, default=1,
                     help='number of threads to load the dataset; memory consumption and disk access load increases (~linearly) with this numbers')
 parser.add_argument('--predict', action='store_true', default=False,
@@ -384,9 +386,9 @@ def test_load(args):
                                       #fetch_by_files=True, fetch_step=1,
                                       # update for inference on data
                                       # (since default approach tries to read the full data file)
-                                      fetch_by_files=False, fetch_step=0.01,
+                                      fetch_by_files=False, fetch_step=0.05,
                                       name='test_' + name)
-        test_loader = DataLoader(test_data, num_workers=num_workers, batch_size=args.batch_size,
+        test_loader = DataLoader(test_data, num_workers=num_workers, batch_size=args.predict_batch_size,
                         drop_last=False, pin_memory=True)
         return test_loader
 
@@ -1134,7 +1136,7 @@ def main():
     # parse command line args
     args = parser.parse_args()
 
-    # set number of instances ('samples') or number of batches ('steps') per epoch
+    # set number of instances ('samples') or number of batches ('steps') per epoch for training and validation
     if args.samples_per_epoch is not None:
         if args.steps_per_epoch is None:
             args.steps_per_epoch = args.samples_per_epoch // args.batch_size
@@ -1147,6 +1149,9 @@ def main():
         else:
             msg = 'Please use either `--steps-per-epoch-val` or `--samples-per-epoch-val`, but not both!'
             raise RuntimeError(msg)
+
+    # set batch size for testing
+    if args.predict_batch_size <= 0: args.predict_batch_size = args.batch_size
 
     # set number of batches ('steps') per epoch for validation
     if args.steps_per_epoch_val is None and args.steps_per_epoch is not None:
