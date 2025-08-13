@@ -127,9 +127,13 @@ parser.add_argument('--batch-size', type=int, default=128,
 parser.add_argument('--use-amp', action='store_true', default=False,
                     help='use mixed precision training (fp16)')
 parser.add_argument('--gpus', type=str, default='',
-                    help='device for the training/testing; to use CPU, set to empty string (""); to use multiple gpu, set it as a comma separated list, e.g., `1,2,3,4`')
+                    help='Device for the training/testing.'
+                      + ' To use CPU, set to empty string ("") (default).'
+                      + ' To use a single GPU, set to 0 (or another valid device index).'
+                      + ' To use multiple GPUs, set it as a comma separated list, e.g., "1,2,3,4".')
 parser.add_argument('--predict-gpus', type=str, default=None,
-                    help='device for the testing; to use CPU, set to empty string (""); to use multiple gpu, set it as a comma separated list, e.g., `1,2,3,4`; if not set, use the same as `--gpus`')
+                    help='Device for the testing.'
+                      + ' See `--gpus` for allowed options. If None (default), use the same as `--gpus`')
 parser.add_argument('--num-workers', type=int, default=1,
                     help='number of threads to load the dataset; memory consumption and disk access load increases (~linearly) with this numbers')
 parser.add_argument('--predict', action='store_true', default=False,
@@ -1048,11 +1052,27 @@ def _main(args):
             del train_loader, val_loader
             test_loaders, data_config = test_load(args)
 
+        # parse predict-gpus argument
+        # note: in principle not needed, as it is already done upstream
+        #if args.predict_gpus is None:
+        #    # set to same value as gpus argument
+        #    args.predict_gpus = args.gpus
+
         if not args.model_prefix.endswith('.onnx'):
             # set correct device (CPUs or GPUs)
             if args.predict_gpus:
+                # print available devices
+                _logger.info(f'Running on GPUs requested (--gpus = {args.gpus}).')
+                _logger.info(f'Info about available GPU devices:')
+                _logger.info(f'  - torch.cuda.is_available(): {torch.cuda.is_available()}')
+                _logger.info(f'  - torch.cuda.device_count(): {torch.cuda.device_count()}')
+                # set device
                 gpus = [int(i) for i in args.predict_gpus.split(',')]
                 dev = torch.device(gpus[0])
+                # print details about chosen device
+                _logger.info(f'Info about chosen device:')
+                _logger.info(f'  - address: {torch.cuda.device(0)}')
+                _logger.info(f'  - name: {torch.cuda.get_device_name(0)}')
             else:
                 gpus = None
                 dev = torch.device('cpu')

@@ -47,6 +47,12 @@ if __name__=='__main__':
     # runmode and job settings
     runmode = 'slurm'
     slurmscript = 'sjob_weaver_part.sh'
+    env_cmds = ([
+        'source /blue/avery/llambre1.brown/miniforge3/bin/activate',
+        'conda activate weaver',
+        f'cd {thisdir}'
+    ])
+    gpus = '0'
 
     # check if all config files exist
     files_to_check = [data_config, model_config, sample_config_train, sample_config_test]
@@ -100,6 +106,7 @@ if __name__=='__main__':
     # data loading options
     cmd += ' --in-memory --fetch-step 1'
     cmd += ' --copy-inputs'
+    if gpus is not None: cmd += f' --gpus {gpus}'
     # switch between training or just printing
     if not do_training: cmd += ' --print'
 
@@ -113,12 +120,15 @@ if __name__=='__main__':
         ct.submitCommandAsCondorJob('cjob_weaver', cmd,
           jobflavour='workday', conda_activate=conda_activate, conda_env=conda_env)
     elif runmode=='slurm':
-        env_cmds = ([
-          'source /blue/avery/llambre1.brown/miniforge3/bin/activate',
-          'conda activate weaver',
-          f'cd {thisdir}'
-        ])
         job_name = os.path.splitext(slurmscript)[0]
-        st.submitCommandAsSlurmJob(cmd, script=slurmscript,
-                job_name=job_name, env_cmds=env_cmds,
-                time='05:00:00')
+        slurm_options = {
+          'job_name': job_name,
+          'env_cmds': env_cmds,
+          'memory': '16G',
+          'time': '05:00:00',
+          'constraint': 'el9'
+        }
+        if gpus!='""':
+            slurm_options['gres'] = 'gpu:1'
+            slurm_options['gpus'] = '1'
+        st.submitCommandAsSlurmJob(cmd, slurmscript, **slurm_options)
