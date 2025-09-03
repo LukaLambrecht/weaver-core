@@ -8,6 +8,8 @@ import matplotlib.pyplot as plt
 thisdir = os.path.abspath(os.path.dirname(__file__))
 sys.path.append(thisdir)
 
+from evaluationtools import get_discos_from_events
+
 
 def plot_correlation(events,
                 categories,
@@ -15,7 +17,8 @@ def plot_correlation(events,
                 outputdir = None,
                 score_branch = None,
                 variables = None,
-                slices = None):
+                slices = None,
+                do_disco = False):
 
     # check arguments
     if score_branch is None: raise Exception('Must provide a score branch.')
@@ -64,13 +67,15 @@ def plot_correlation(events,
             txt = ax.text(0.95, 0.3, label, fontsize=12,
                     ha='right', va='top', transform=ax.transAxes)
             txt.set_bbox(dict(facecolor='white', alpha=0.5))
-            if calculate_disco:
-                txt = ax.text(0.95, 0.2, 'DisCo: {:.3f}'.format(dccoeffs[varname]), fontsize=12,
-                        ha='right', va='top', transform=ax.transAxes)
-                txt.set_bbox(dict(facecolor='white', alpha=0.5))
             figname = os.path.join(outputdir, f'correlation_{tag}_{varname}_scatter.png')
             fig.savefig(figname)
             print(f'Saved figure {figname}.')'''
+
+            # calculate distance correlation
+            if do_disco:
+                disco = get_discos_from_events(events,
+                          score_branch=score_branch, correlation_variables={varname: variable},
+                          npoints=1000, niterations=3, mask=masks[category_name])[varname]
 
             # same as above but in 2D histogram format instead of scatter plot
             this_values = events[variable['branch']][masks[category_name]]
@@ -93,6 +98,10 @@ def plot_correlation(events,
             txt = ax.text(0.95, 0.95, f'{category_settings["label"]}', fontsize=12,
                       ha='right', va='top', transform=ax.transAxes)
             txt.set_bbox(dict(facecolor='white', alpha=0.8))
+            if do_disco:
+                txt = ax.text(0.95, 0.85, 'DisCo: {:.2f} +- {:.2f}'.format(disco[0], disco[1]),
+                        fontsize=12, ha='right', va='top', transform=ax.transAxes)
+                txt.set_bbox(dict(facecolor='white', alpha=0.8))
             figname = os.path.join(outputdir,
                         f'correlation_{category_name}_{varname}_density.png')
             fig.savefig(figname)
@@ -137,6 +146,10 @@ def plot_correlation(events,
             txt = ax.text(0.05, 0.95, f'{category_settings["label"]}', fontsize=12,
                     ha='left', va='top', transform=ax.transAxes)
             txt.set_bbox(dict(facecolor='white', alpha=0.5))
+            if do_disco:
+                txt = ax.text(0.05, 0.85, 'DisCo: {:.2f} +- {:.2f}'.format(disco[0], disco[1]),
+                        fontsize=12, ha='left', va='top', transform=ax.transAxes)
+                txt.set_bbox(dict(facecolor='white', alpha=0.8))
             leg = ax.legend(fontsize=12)
             for lh in leg.legend_handles:
                 lh.set_alpha(1)

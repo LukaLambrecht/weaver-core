@@ -6,7 +6,7 @@ import numpy as np
 
 def get_discos_from_events(events,
         score_branch=None, correlation_variables=None,
-        npoints=1000, niterations=1, mask_branch=None):
+        npoints=1000, niterations=1, mask=None, mask_branch=None):
     ### get distance correlation coefficient from events
 
     # import distance correlation function
@@ -20,9 +20,11 @@ def get_discos_from_events(events,
     if correlation_variables is None: raise Exception('Must provide at least one variable.')
 
     # make a mask
-    mask = None
     if mask_branch is not None:
-        mask = (events[mask_branch]).astype(bool)
+        if mask is None:
+            mask = (events[mask_branch]).astype(bool)
+        else:
+            mask = ((mask) & (events[mask_branch]).astype(bool))
 
     # get scores
     scores = events[score_branch]
@@ -80,7 +82,8 @@ def get_discos_from_events(events,
             dccoeffs[varname][iteridx] = dccoeff
 
     # do averaging over iterations
-    for varname in variables.keys(): dccoeffs[varname] = np.mean(dccoeffs[varname])
+    for varname in variables.keys():
+        dccoeffs[varname] = (np.mean(dccoeffs[varname]), np.std(dccoeffs[varname]))
 
     return dccoeffs
 

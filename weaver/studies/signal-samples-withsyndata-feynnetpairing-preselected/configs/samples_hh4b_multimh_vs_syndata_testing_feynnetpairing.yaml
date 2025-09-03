@@ -1,0 +1,5 @@
+# signal samples
+- /blue/avery/llambre1.brown/hhto4b-fit/samples-selection/output_test/*-sig/HHto4b_mH_125.root
+
+# background samples
+- /blue/avery/llambre1.brown/hhto4b-fit/samples-selection/output_test/*-syndata/syndata*.root

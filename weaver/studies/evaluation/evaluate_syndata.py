@@ -69,7 +69,7 @@ if __name__=='__main__':
             'bins': np.linspace(50, 250, num=26)
         }
     }
-    score_slices = [0., 0.5, 0.75, 0.9, 0.95, 1]
+    score_slices = [0., 0.5, 0.8, 0.9, 1]
     phase_space_split = {
       'all': {},
       '3T': {'dHH_NbtagT': [2.5, 4.5]},
@@ -138,7 +138,9 @@ if __name__=='__main__':
                 outputdir = outputdir,
                 score_branch = score_branch,
                 variables = correlation_variables,
-                slices = score_slices)
+                slices = score_slices,
+                #do_disco = True
+            )
             plt.close()
 
             # plot score distribution and ROC for multiple categories together

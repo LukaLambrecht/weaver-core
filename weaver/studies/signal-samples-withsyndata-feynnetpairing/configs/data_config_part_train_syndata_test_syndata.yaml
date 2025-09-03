@@ -48,6 +48,7 @@ file_magic:
     HHto4b_mH_190_powheg_pythia8_Run3_.+\.root: 190
     HHto4b_mH_200_powheg_pythia8_Run3_.+\.root: 200
     synthetic_data.+\.root: 1
+    SyntheticData.+\.root: 2
 
 new_variables:
     # Define new variables as a function of existing variables
@@ -76,7 +77,8 @@ new_variables:
 
     #ak4_mask: ak.ones_like(ak4_pt)
     ak4_mask: ((ak4_pt > 35) & (np.abs(ak4_eta) < 2.5))
-    ak4p4: _p4_from_ptetaphim(ak4_pt, ak4_eta, ak4_phi, ak4_mass)
+    ak4_dummy_mass: ak.ones_like(ak4_pt)*10
+    ak4p4: _p4_from_ptetaphim(ak4_pt, ak4_eta, ak4_phi, ak4_dummy_mass)
     ak4_px: ak4p4.px
     ak4_py: ak4p4.py
     ak4_pz: ak4p4.pz
@@ -151,6 +153,7 @@ weights:
      dHH_H1_mass: [50., 60., 70., 80., 90., 100., 110., 120., 130., 140., 150., 160., 170., 180., 190., 200., 250., 30000.]
      dHH_H2_mass: [50., 60., 70., 80., 90., 100., 110., 120., 130., 140., 150., 160., 170., 180., 190., 200., 250., 30000.]
      #dHH_NbtagM: [0, 10]
+     n_ak4: [3.5, 4.5, 5.5, 6.5, 7.5, 10.5]
    reweight_discard_under_overflow: false
    reweight_classes: [isSignal, isBackground]
    class_weights: [1, 1]
