@@ -21,18 +21,19 @@ if __name__=='__main__':
     model_config = os.path.abspath('configs/model_config_pnet.py')
     #model_config = os.path.abspath('configs/model_config_part.py')
     # sample list for training data
-    sample_config_train = os.path.abspath('configs/samples_training_smalltest.yaml')
+    sample_config_train = os.path.abspath('configs/samplelists/uflhpg/samples_training_smalltest.yaml')
     # sample list for testing data
-    sample_config_test = os.path.abspath('configs/samples_testing_smalltest.yaml')
+    sample_config_test = os.path.abspath('configs/samplelists/uflhpg/samples_testing_smalltest.yaml')
     # output dir
     outputdir = os.path.join(thisdir, 'output_test')
     # network settings
-    num_epochs = 1
-    steps_per_epoch = 10
+    num_epochs = 10
+    steps_per_epoch = 30
     batch_size = 512
     # runmode and job settings
     # (choose from 'local', 'condor', and 'slurm')
     runmode = 'local'
+    gpus= '0'
 
     # check if all config files exist
     files_to_check = [data_config, model_config, sample_config_train, sample_config_test]
@@ -76,6 +77,8 @@ if __name__=='__main__':
     # data loading options
     cmd += ' --in-memory --fetch-step 1'
     cmd += ' --copy-inputs'
+    # compute options
+    if gpus is not None: cmd += f' --gpus {gpus}'
 
     # run or submit commands
     if runmode == 'local':
@@ -94,7 +97,14 @@ if __name__=='__main__':
           f'cd {thisdir}'
         ])
         job_name = os.path.splitext(slurmscript)[0]
-        st.submitCommandAsSlurmJob(cmd, script=slurmscript,
-                job_name=job_name, env_cmds=env_cmds,
-                memory='8G',
-                time='05:00:00')
+        slurm_options = {
+          'job_name': job_name,
+          'env_cmds': env_cmds,
+          'memory': '16G',
+          'time': '05:00:00',
+          'constraint': 'el9'
+        }
+        if gpus!='""':
+            slurm_options['gres'] = 'gpu:1'
+            slurm_options['gpus'] = '1'
+        st.submitCommandAsSlurmJob(cmd, slurmscript, **slurm_options)
