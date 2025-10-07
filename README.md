@@ -30,8 +30,8 @@ The default case is simply `pip install torch`.
 Then, install weaver. This will install also all the dependencies except for pytorch.
 ```
 git clone git@github.com:LukaLambrecht/weaver-core.git
-git checkout aleph
 cd weaver-core
+git checkout aleph
 pip install -e .
 ```
 
