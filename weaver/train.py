@@ -16,6 +16,7 @@ from torch.utils.data import DataLoader
 from weaver.utils.logger import _logger, _configLogger
 from weaver.utils.dataset import SimpleIterDataset
 from weaver.utils.import_tools import import_module
+from weaver.utils.samplelisttools import read_sample_list
 
 parser = argparse.ArgumentParser()
 parser.add_argument('--regression-mode', action='store_true', default=False,
@@ -111,9 +112,11 @@ parser.add_argument('--start-lr', type=float, default=5e-3,
                     help='start learning rate')
 parser.add_argument('--batch-size', type=int, default=128,
                     help='batch size')
+parser.add_argument('--predict-batch-size', type=int, default=-1,
+                    help='Batch size used in testing/prediction (default: same as training batch size, set by args.batch_size).')
 parser.add_argument('--use-amp', action='store_true', default=False,
                     help='use mixed precision training (fp16)')
-parser.add_argument('--gpus', type=str, default='0',
+parser.add_argument('--gpus', type=str, default='',
                     help='device for the training/testing; to use CPU, set to empty string (""); to use multiple gpu, set it as a comma separated list, e.g., `1,2,3,4`')
 parser.add_argument('--predict-gpus', type=str, default=None,
                     help='device for the testing; to use CPU, set to empty string (""); to use multiple gpu, set it as a comma separated list, e.g., `1,2,3,4`; if not set, use the same as `--gpus`')
@@ -144,152 +147,40 @@ parser.add_argument('--cross-validation', type=str, default=None,
                     help='enable k-fold cross validation; input format: `variable_name%%k`')
 
 
-def to_filelist(args, mode='train'):
-    if mode == 'train':
-        flist = args.data_train
-    elif mode == 'val':
-        flist = args.data_val
-    else:
-        raise NotImplementedError('Invalid mode %s' % mode)
-
-    # keyword-based: 'a:/path/to/a b:/path/to/b'
-    file_dict = {}
-    for f in flist:
-        if ':' in f:
-            name, fp = f.split(':')
-        else:
-            name, fp = '_', f
-        files = glob.glob(fp)
-        if name in file_dict:
-            file_dict[name] += files
-        else:
-            file_dict[name] = files
-
-    # sort files
-    for name, files in file_dict.items():
-        file_dict[name] = sorted(files)
-
-    if args.local_rank is not None:
-        if mode == 'train':
-            local_world_size = int(os.environ['LOCAL_WORLD_SIZE'])
-            new_file_dict = {}
-            for name, files in file_dict.items():
-                new_files = files[args.local_rank::local_world_size]
-                assert(len(new_files) > 0)
-                np.random.shuffle(new_files)
-                new_file_dict[name] = new_files
-            file_dict = new_file_dict
-
-    if args.copy_inputs:
-        import tempfile
-        tmpdir = tempfile.mkdtemp()
-        if os.path.exists(tmpdir):
-            shutil.rmtree(tmpdir)
-        new_file_dict = {name: [] for name in file_dict}
-        for name, files in file_dict.items():
-            for src in files:
-                dest = os.path.join(tmpdir, src.lstrip('/'))
-                if not os.path.exists(os.path.dirname(dest)):
-                    os.makedirs(os.path.dirname(dest), exist_ok=True)
-                shutil.copy2(src, dest)
-                _logger.info('Copied file %s to %s' % (src, dest))
-                new_file_dict[name].append(dest)
-            if len(files) != len(new_file_dict[name]):
-                _logger.error('Only %d/%d files copied for %s file group %s',
-                              len(new_file_dict[name]), len(files), mode, name)
-        file_dict = new_file_dict
-
-    filelist = sum(file_dict.values(), [])
-    assert(len(filelist) == len(set(filelist)))
-    return file_dict, filelist
-
-
-def train_load(args):
+def parse_file_patterns(file_patterns, local_rank=None, copy_inputs=False):
     """
-    Loads the training data.
-    :param args:
-    :return: train_loader, val_loader, data_config, train_inputs
+    Get a valid file list from command line arguments
+    Input arguments:
+     - file_patterns: list of strings representing file patterns (potentially with wildcards).
+       note: the file patterns may contain a ":" character as follows: <name>:<pattern>.
+             the names provided in this way are the keys of the returned dict
+             (the default name for patterns that do not have this structure is "", i.e. empty string).
+       note: named file patterns may additionally contain a '%' character as follows: <name>%<split>:<pattern>.
+             in this case, the files will be split in groups of <split> (integer).
+             this is not supported for training/validation data, only for testing data!
+     - local_rank: ?
+     - copy_inputs: bool whether to copy the files to a local area.
+    Returns:
+     - file dict matching names (default name: "_") to corresponding files.
+     - flat list of all files.
     """
 
-    train_file_dict, train_files = to_filelist(args, 'train')
-    if args.data_val:
-        val_file_dict, val_files = to_filelist(args, 'val')
-        train_range = val_range = (0, 1)
-    else:
-        val_file_dict, val_files = train_file_dict, train_files
-        train_range = (0, args.train_val_split)
-        val_range = (args.train_val_split, 1)
-    _logger.info('Using %d files for training, range: %s' % (len(train_files), str(train_range)))
-    _logger.info('Using %d files for validation, range: %s' % (len(val_files), str(val_range)))
-
-    if args.demo:
-        train_files = train_files[:20]
-        val_files = val_files[:20]
-        train_file_dict = {'_': train_files}
-        val_file_dict = {'_': val_files}
-        _logger.info(train_files)
-        _logger.info(val_files)
-        args.data_fraction = 0.1
-        args.fetch_step = 0.002
-
-    if args.in_memory and (args.steps_per_epoch is None or args.steps_per_epoch_val is None):
-        raise RuntimeError('Must set --steps-per-epoch when using --in-memory!')
-
-    train_data = SimpleIterDataset(train_file_dict, args.data_config, for_training=True,
-                                   extra_selection=args.extra_selection,
-                                   remake_weights=not args.no_remake_weights,
-                                   load_range_and_fraction=(train_range, args.data_fraction),
-                                   file_fraction=args.file_fraction,
-                                   fetch_by_files=args.fetch_by_files,
-                                   fetch_step=args.fetch_step,
-                                   infinity_mode=args.steps_per_epoch is not None,
-                                   in_memory=args.in_memory,
-                                   name='train' + ('' if args.local_rank is None else '_rank%d' % args.local_rank))
-    val_data = SimpleIterDataset(val_file_dict, args.data_config, for_training=True,
-                                 extra_selection=args.extra_selection,
-                                 load_range_and_fraction=(val_range, args.data_fraction),
-                                 file_fraction=args.file_fraction,
-                                 fetch_by_files=args.fetch_by_files,
-                                 fetch_step=args.fetch_step,
-                                 infinity_mode=args.steps_per_epoch_val is not None,
-                                 in_memory=args.in_memory,
-                                 name='val' + ('' if args.local_rank is None else '_rank%d' % args.local_rank))
-    train_loader = DataLoader(train_data, batch_size=args.batch_size, drop_last=True, pin_memory=True,
-                              num_workers=min(args.num_workers, int(len(train_files) * args.file_fraction)),
-                              persistent_workers=args.num_workers > 0 and args.steps_per_epoch is not None)
-    val_loader = DataLoader(val_data, batch_size=args.batch_size, drop_last=True, pin_memory=True,
-                            num_workers=min(args.num_workers, int(len(val_files) * args.file_fraction)),
-                            persistent_workers=args.num_workers > 0 and args.steps_per_epoch_val is not None)
-    data_config = train_data.config
-    train_input_names = train_data.config.input_names
-    train_label_names = train_data.config.label_names
-
-    return train_loader, val_loader, data_config, train_input_names, train_label_names
-
-
-def test_load(args):
-    """
-    Loads the test data.
-    :param args:
-    :return: test_loaders, data_config
-    """
-    # keyword-based --data-test: 'a:/path/to/a b:/path/to/b'
-    # split --data-test: 'a%10:/path/to/a/*'
+    # make a dict matching names to lists of corresponding files
+    # (files for which no name is provided on )
     file_dict = {}
     split_dict = {}
-    for f in args.data_test:
-        if ':' in f:
-            name, fp = f.split(':')
+    for file_pattern in file_patterns:
+        if ':' in file_pattern:
+            name, file_pattern = file_pattern.split(':')
             if '%' in name:
                 name, split = name.split('%')
                 split_dict[name] = int(split)
-        else:
-            name, fp = '', f
-        files = glob.glob(fp)
-        if name in file_dict:
-            file_dict[name] += files
-        else:
-            file_dict[name] = files
+        else: name = ''
+        # find all files corresponding to pattern
+        files = glob.glob(file_pattern)
+        # append to dict
+        if name in file_dict: file_dict[name] += files
+        else: file_dict[name] = files
 
     # sort files
     for name, files in file_dict.items():
@@ -301,23 +192,196 @@ def test_load(args):
         for i in range((len(files) + split - 1) // split):
             file_dict[f'{name}_{i}'] = files[i * split:(i + 1) * split]
 
+    # modify file dict based on local_rank
+    # (what is this? probably irrelevant for now)
+    if local_rank is not None:
+        local_world_size = int(os.environ['LOCAL_WORLD_SIZE'])
+        new_file_dict = {}
+        for name, files in file_dict.items():
+            new_files = files[args.local_rank::local_world_size]
+            assert(len(new_files) > 0)
+            np.random.shuffle(new_files)
+            new_file_dict[name] = new_files
+        file_dict = new_file_dict
+
+    # copy all input files to a temporary local directory
+    if copy_inputs:
+        # define a temporary directory
+        import tempfile
+        tmpdir = tempfile.mkdtemp()
+        if os.path.exists(tmpdir): shutil.rmtree(tmpdir)
+        # copy all files
+        new_file_dict = {name: [] for name in file_dict}
+        for name, files in file_dict.items():
+            for src in files:
+                dest = os.path.join(tmpdir, src.lstrip('/'))
+                if not os.path.exists(os.path.dirname(dest)):
+                    os.makedirs(os.path.dirname(dest), exist_ok=True)
+                shutil.copy2(src, dest)
+                _logger.info('Copied file %s to %s' % (src, dest))
+                new_file_dict[name].append(dest)
+            if len(files) != len(new_file_dict[name]):
+                _logger.error('Only %d/%d files copied for group %s',
+                              len(new_file_dict[name]), len(files), name)
+        file_dict = new_file_dict
+
+    # check that all files are unique
+    file_list = sum(file_dict.values(), [])
+    assert(len(file_list) == len(set(file_list)))
+
+    # return dict and list of files
+    return file_dict, file_list
+
+
+def train_load(args):
+    """
+    Loads the training data.
+    Input arguments:
+     - full set of command line args
+    """
+
+    # check if args.data_train was provided on the command line
+    if args.data_train is None or len(args.data_train)==0:
+        # this should not normally happen as this function is only called in training mode,
+        # but add an explicit check anyway.
+        raise Exception('Something went wrong: train_load(args) was called while no training data is provided.')
+
+    # get the file patterns for training data in the case of a provided sample list
+    print('HERE')
+    print(len(args.data_train))
+    if len(args.data_train)==1 and args.data_train[0].endswith('.yaml'):
+        print('ALSO HERE')
+        samplelist = args.data_train[0]
+        _logger.info(f'Reading sample list {samplelist} for training data.')
+        args.data_train = read_sample_list(samplelist)
+
+    # get the files for training data
+    train_file_dict, train_files = parse_file_patterns(args.data_train,
+        copy_inputs=args.copy_inputs, local_rank=args.local_rank)
+
+    # check if args.data_val was provided on the command line
+    if args.data_val is None or len(args.data_val)==0:
+        # use a fraction of the training data for validation
+        val_file_dict, val_files = train_file_dict, train_files
+        train_range = (0, args.train_val_split)
+        val_range = (args.train_val_split, 1)
+    else:
+        # get the file patterns for validation data in the case of a provided sample list
+        if len(args.data_val)==1 and args.data_val[0].endswith('.yaml'):
+            samplelist = args.data_val[0]
+            _logger.info(f'Reading sample list {samplelist} for validation data.')
+            args.data_val = read_sample_list(samplelist)
+        # get the files for validation data
+        val_file_dict, val_files = parse_file_patterns(args.data_val,
+            copy_inputs=args.copy_inputs, local_rank=None)
+        train_range = val_range = (0, 1)
+
+    # print number of files for debugging
+    _logger.info('Using %d files for training, range: %s' % (len(train_files), str(train_range)))
+    _logger.info('Using %d files for validation, range: %s' % (len(val_files), str(val_range)))
+
+    # modify files and some data loading settings for small demo runs
+    if args.demo:
+        train_files = train_files[:20]
+        val_files = val_files[:20]
+        train_file_dict = {'_': train_files}
+        val_file_dict = {'_': val_files}
+        _logger.info(train_files)
+        _logger.info(val_files)
+        args.data_fraction = 0.1
+        args.fetch_step = 0.002
+
+    # check if correct arguments are set for in-memory running
+    # (why must steps-per-epoch be set for in-memory running?)
+    if args.in_memory and (args.steps_per_epoch is None or args.steps_per_epoch_val is None):
+        raise RuntimeError('Must set --steps-per-epoch when using --in-memory!')
+
+    # make training data loader
+    name = 'train' + ('' if args.local_rank is None else '_rank%d' % args.local_rank)
+    train_data = SimpleIterDataset(train_file_dict, args.data_config, for_training=True,
+                                   extra_selection=args.extra_selection,
+                                   remake_weights=not args.no_remake_weights,
+                                   load_range_and_fraction=(train_range, args.data_fraction),
+                                   file_fraction=args.file_fraction,
+                                   fetch_by_files=args.fetch_by_files,
+                                   fetch_step=args.fetch_step,
+                                   infinity_mode=args.steps_per_epoch is not None,
+                                   in_memory=args.in_memory,
+                                   name=name)
+    train_loader = DataLoader(train_data, batch_size=args.batch_size, drop_last=True, pin_memory=True,
+                     num_workers=min(args.num_workers, int(len(train_files) * args.file_fraction)),
+                     persistent_workers=args.num_workers > 0 and args.steps_per_epoch is not None)
+
+    # make validation data loader
+    name = 'val' + ('' if args.local_rank is None else '_rank%d' % args.local_rank)
+    val_data = SimpleIterDataset(val_file_dict, args.data_config, for_training=True,
+                                 extra_selection=args.extra_selection,
+                                 load_range_and_fraction=(val_range, args.data_fraction),
+                                 file_fraction=args.file_fraction,
+                                 fetch_by_files=args.fetch_by_files,
+                                 fetch_step=args.fetch_step,
+                                 infinity_mode=args.steps_per_epoch_val is not None,
+                                 in_memory=args.in_memory,
+                                 name=name)
+    val_loader = DataLoader(val_data, batch_size=args.batch_size, drop_last=True, pin_memory=True,
+                   num_workers=min(args.num_workers, int(len(val_files) * args.file_fraction)),
+                   persistent_workers=args.num_workers > 0 and args.steps_per_epoch_val is not None)
+    
+    # make a new reference to the data config
+    data_config = train_data.config
+    train_input_names = train_data.config.input_names
+    train_label_names = train_data.config.label_names
+
+    # return data loaders and some other info
+    return train_loader, val_loader, data_config, train_input_names, train_label_names
+
+
+def test_load(args):
+    """
+    Loads the testing data.
+    Input arguments:
+     - full set of command line args
+    """
+
+    # check if args.data_test was provided on the command line
+    if args.data_test is None:
+        # this should not normally happen as this function is only called in testing mode,
+        # but add an explicit check anyway.
+        raise Exception('Something went wrong: test_load(args) was called while args.data_test is None.')
+
+    # get the file patterns for testing data in the case of a provided sample list
+    if len(args.data_test)==1 and args.data_test[0].endswith('.yaml'):
+        samplelist = args.data_test[0]
+        _logger.info(f'Reading sample list {samplelist} for testing data...')
+        args.data_test = read_sample_list(samplelist)
+
+    # get the files for testing data
+    _logger.info(f'Finding files for testing data...')
+    test_file_dict, test_files = parse_file_patterns(args.data_test,
+        copy_inputs=args.copy_inputs, local_rank=None)
+    _logger.info(f'Found following files:')
+    _logger.info(test_file_dict)
+
     def get_test_loader(name):
-        filelist = file_dict[name]
-        _logger.info('Running on test file group %s with %d files:\n...%s', name, len(filelist), '\n...'.join(filelist))
+        filelist = test_file_dict[name]
+        _logger.info('Running on test file group %s with %d files:\n  - %s', name, len(filelist),
+                '\n  - '.join(filelist))
         num_workers = min(args.num_workers, len(filelist))
         test_data = SimpleIterDataset({name: filelist}, args.data_config, for_training=False,
                                       extra_selection=args.extra_test_selection,
                                       load_range_and_fraction=((0, 1), args.data_fraction),
-                                      fetch_by_files=True, fetch_step=1,
+                                      #fetch_by_files=True, fetch_step=1,
+                                      # update for inference on data
+                                      # (since default approach tries to read the full data file)
+                                      fetch_by_files=False, fetch_step=0.05,
                                       name='test_' + name)
-        test_loader = DataLoader(test_data, num_workers=num_workers, batch_size=args.batch_size, drop_last=False,
-                                 pin_memory=True)
+        test_loader = DataLoader(test_data, num_workers=num_workers, batch_size=args.predict_batch_size,
+                        drop_last=False, pin_memory=True)
         return test_loader
 
-    test_loaders = {name: functools.partial(get_test_loader, name) for name in file_dict}
+    test_loaders = {name: functools.partial(get_test_loader, name) for name in test_file_dict}
     data_config = SimpleIterDataset({}, args.data_config, for_training=False).config
     return test_loaders, data_config
-
 
 def onnx(args):
     """
@@ -915,25 +979,35 @@ def _main(args):
 
 
 def main():
+    
+       # parse command line args
     args = parser.parse_args()
 
+    # set number of instances ('samples') or number of batches ('steps') per epoch for training and validation
     if args.samples_per_epoch is not None:
         if args.steps_per_epoch is None:
             args.steps_per_epoch = args.samples_per_epoch // args.batch_size
         else:
-            raise RuntimeError('Please use either `--steps-per-epoch` or `--samples-per-epoch`, but not both!')
-
+            msg = 'Please use either `--steps-per-epoch` or `--samples-per-epoch`, but not both!'
+            raise RuntimeError(msg)
     if args.samples_per_epoch_val is not None:
         if args.steps_per_epoch_val is None:
             args.steps_per_epoch_val = args.samples_per_epoch_val // args.batch_size
         else:
-            raise RuntimeError('Please use either `--steps-per-epoch-val` or `--samples-per-epoch-val`, but not both!')
+            msg = 'Please use either `--steps-per-epoch-val` or `--samples-per-epoch-val`, but not both!'
+            raise RuntimeError(msg)
 
+    # set batch size for testing
+    if args.predict_batch_size <= 0: args.predict_batch_size = args.batch_size
+
+    # set number of batches ('steps') per epoch for validation
     if args.steps_per_epoch_val is None and args.steps_per_epoch is not None:
-        args.steps_per_epoch_val = round(args.steps_per_epoch * (1 - args.train_val_split) / args.train_val_split)
+        args.steps_per_epoch_val = round(args.steps_per_epoch
+          * (1 - args.train_val_split) / args.train_val_split)
     if args.steps_per_epoch_val is not None and args.steps_per_epoch_val < 0:
         args.steps_per_epoch_val = None
 
+    # make auto-generated model name
     if '{auto}' in args.model_prefix or '{auto}' in args.log:
         import hashlib
         import time

@@ -1,0 +1,71 @@
+# Data configuration for jet classification with ParticleNet.
+
+# See original example here:
+# https://github.com/jet-universe/particle_transformer/blob/29ef32b5020c11d0d22fba01f37a740a72cbbb4d/data/JetClass/JetClass_full.yaml
+
+
+selection:
+
+new_variables:
+   pfcand_mask: ak.ones_like(pfcand_pt)
+   pfcand_pt_log: np.log(pfcand_pt)
+   pfcand_e_log: np.log(pfcand_e)
+   pfcand_drrel: np.hypot(pfcand_thetarel, pfcand_phirel)
+
+preprocess:
+  method: manual
+  data_fraction: 0.5
+
+inputs:
+   pf_points:
+      length: 128
+      pad_mode: wrap
+      vars:
+         - [pfcand_px, null]
+         - [pfcand_py, null]
+         - [pfcand_pz, null]
+         - [pfcand_e, null]
+   pf_features:
+      length: 128
+      pad_mode: wrap
+      vars: 
+      ### [format 1]: var_name (no transformation)
+      ### [format 2]: [var_name, 
+      ###              subtract_by(optional, default=None, no transf. if preprocess.method=manual, auto transf. if preprocess.method=auto), 
+      ###              multiply_by(optional, default=1), 
+      ###              clip_min(optional, default=-5), 
+      ###              clip_max(optional, default=5), 
+      ###              pad_value(optional, default=0)]
+         - [pfcand_pt_log, 1.7, 0.7]
+         - [pfcand_e_log, 2.0, 0.7]
+         - [pfcand_ptrel_log, -4.7, 0.7]
+         - [pfcand_erel_log, -4.7, 0.7]
+         - [pfcand_drrel, 0.2, 4.0]
+         - [pfcand_charge, null]
+         - [pfcand_isChargedHad, null]
+         - [pfcand_isNeutralHad, null]
+         - [pfcand_isGamma, null]
+         - [pfcand_isEl, null]
+         - [pfcand_isMu, null]
+         - [pfcand_thetarel, null]
+         - [pfcand_phirel, null]
+   pf_mask:
+      length: 128
+      pad_mode: constant
+      vars: 
+         - [pfcand_mask, null]
+
+labels:
+   type: simple
+   value: [recojet_isB, recojet_isC, recojet_isUDSG]
+
+observers:
+   - recojet_pt
+   - recojet_eta
+   - recojet_theta
+   - recojet_phi
+   - recojet_e
+   - recojet_mass
+   - nconst
+
+weights:
