@@ -15,11 +15,11 @@ if __name__=='__main__':
     # common settings
     weaverdir = os.path.join(weavercoredir, 'weaver')
     # data config
-    data_config = os.path.abspath('configs/data_config_pnet.yaml')
-    #data_config = os.path.abspath('configs/data_config_part.yaml')
+    #data_config = os.path.abspath('configs/data_config_pnet.yaml')
+    data_config = os.path.abspath('configs/data_config_part.yaml')
     # model config
-    model_config = os.path.abspath('configs/model_config_pnet.py')
-    #model_config = os.path.abspath('configs/model_config_part.py')
+    #model_config = os.path.abspath('configs/model_config_pnet.py')
+    model_config = os.path.abspath('configs/model_config_part.py')
     # sample list for training data
     sample_config_train = os.path.abspath('configs/samplelists/uflhpg/samples_training_smalltest.yaml')
     # sample list for testing data

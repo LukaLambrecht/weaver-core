@@ -49,7 +49,11 @@ def plot_ternary(events,
         ax.scatter(scores_1, scores_2, scores_3,
                   color = category_settings['color'],
                   label = category_settings['label'])
-        
+
+    ax.grid()
+    ax.set_tlabel(category_names[0] + ' score', fontsize=12)
+    ax.set_llabel(category_names[1] + ' score', fontsize=10)
+    ax.set_rlabel(category_names[2] + ' score', fontsize=10)
     leg = ax.legend(fontsize=10)
     for lh in leg.legend_handles:
         lh.set_alpha(1)
