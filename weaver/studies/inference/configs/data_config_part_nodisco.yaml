@@ -80,8 +80,8 @@ new_variables:
 
     #ak4_mask: ak.ones_like(ak4_pt)
     ak4_mask: ((ak4_pt > 35) & (np.abs(ak4_eta) < 2.5))
-    ak4_dummy_mass: ak.ones_like(ak4_pt)*10
-    ak4p4: _p4_from_ptetaphim(ak4_pt, ak4_eta, ak4_phi, ak4_dummy_mass)
+    #ak4_dummy_mass: ak.ones_like(ak4_pt)*10
+    ak4p4: _p4_from_ptetaphim(ak4_pt, ak4_eta, ak4_phi, ak4_mass)
     ak4_px: ak4p4.px
     ak4_py: ak4p4.py
     ak4_pz: ak4p4.pz

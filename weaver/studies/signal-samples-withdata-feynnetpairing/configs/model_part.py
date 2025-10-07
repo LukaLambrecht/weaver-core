@@ -7,7 +7,7 @@ import numpy as np
 
 thisdir = os.path.abspath(os.path.dirname(__file__))
 weavercoredir = os.path.abspath(os.path.join(thisdir, '../../../../'))
-from weaver.nn.model.ParticleTransformerDisco import ParticleTransformerDisco
+from weaver.nn.model.ParticleTransformer import ParticleTransformer
 
 
 class ParticleTransformerWrapper(torch.nn.Module):
@@ -17,25 +17,17 @@ class ParticleTransformerWrapper(torch.nn.Module):
 
     def __init__(self, **kwargs) -> None:
         super().__init__()
-        self.model = ParticleTransformerDisco(**kwargs)
+        self.model = ParticleTransformer(**kwargs)
 
     @torch.jit.ignore
     def no_weight_decay(self):
         return {'mod.cls_token', }
 
-    def forward(self, points, features, lorentz_vectors, mask, decorrelate):
-        # note: decorrelate is not used in forward pass
+    def forward(self, points, features, lorentz_vectors, mask):
         return self.model(features, v=lorentz_vectors, mask=mask)
 
-    def train_single_epoch(self, train_loader, dev, **kwargs):
-        return self.model.train_single_epoch(train_loader, dev, **kwargs)
 
-
-def get_model(data_config,
-      disco_prediction_index=0, disco_alpha=0, disco_power=1,
-      disco_label=None, disco_score_min=None, disco_score_max=None,
-      disco_mass_min=None, disco_mass_max=None,
-      **kwargs):
+def get_model(data_config, **kwargs):
     
     # hard-coded settings
     # todo
@@ -46,17 +38,6 @@ def get_model(data_config,
     print(f'Found following input feature dims: {features_dims}')
     print(f'Found following number of classes: {num_classes}')
 
-    # print disco settings
-    print('  Found following DisCo parameters:')
-    print(f'  disco_prediction_index: {disco_prediction_index}')
-    print(f'  disco_alpha: {disco_alpha}')
-    print(f'  disco_power: {disco_power}')
-    print(f'  disco_label: {disco_label}')
-    print(f'  disco_score_min: {disco_score_min}')
-    print(f'  disco_score_max: {disco_score_max}')
-    print(f'  disco_mass_min: {disco_mass_min}')
-    print(f'  disco_mass_max: {disco_mass_max}')
-
     # make model arguments
     cfg = dict(
       input_dim = features_dims,
@@ -66,11 +47,19 @@ def get_model(data_config,
       pair_extra_dim=0,
       remove_self_pair=False,
       use_pre_activation_pair=True,
-      embed_dims=[6, 12, 6],
+      # baseline
+      #embed_dims=[6, 12, 6],
+      #pair_embed_dims=[6, 6, 6],
+      #num_heads=2,
+      #num_layers=4,
+      #num_cls_layers=2,
+      # bigger
+      embed_dims=[12, 24, 12],
       pair_embed_dims=[6, 6, 6],
-      num_heads=2,
-      num_layers=4,
+      num_heads=4,
+      num_layers=8,
       num_cls_layers=2,
+      # other parameters
       block_params=None,
       cls_block_params={'dropout': 0, 'attn_dropout': 0, 'activation_dropout': 0},
       fc_params=[],
@@ -79,15 +68,6 @@ def get_model(data_config,
       trim=True,
       for_inference=False,
       use_amp=False,
-      # disco settings
-      disco_prediction_index=disco_prediction_index,
-      disco_alpha=disco_alpha,
-      disco_power=disco_power,
-      disco_label=disco_label,
-      disco_score_min=disco_score_min,
-      disco_score_max=disco_score_max,
-      disco_mass_min=disco_mass_min,
-      disco_mass_max=disco_mass_max
     )
     cfg.update(**kwargs)
 
@@ -109,3 +89,7 @@ def get_model(data_config,
     print(model_info)
 
     return model, model_info
+
+
+def get_loss(data_config, **kwargs):
+    return torch.nn.CrossEntropyLoss()

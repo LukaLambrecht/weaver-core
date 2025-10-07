@@ -499,6 +499,8 @@ class ParticleTransformerDisco(nn.Module):
                  disco_alpha=0,
                  disco_power=1,
                  disco_label=None,
+                 disco_score_min=None,
+                 disco_score_max=None,
                  disco_mass_min=None,
                  disco_mass_max=None,
                  **kwargs) -> None:
@@ -563,6 +565,8 @@ class ParticleTransformerDisco(nn.Module):
         self.disco_alpha = disco_alpha
         self.disco_power = disco_power
         self.disco_label = disco_label
+        self.disco_score_min = disco_score_min
+        self.disco_score_max = disco_score_max
         self.disco_mass_min = disco_mass_min
         self.disco_mass_max = disco_mass_max
 
@@ -629,22 +633,33 @@ class ParticleTransformerDisco(nn.Module):
 
         # optional: do preselection on which predictions/mass values to use in the disco calculation
         if( self.disco_label is not None
+            or self.disco_score_min is not None
+            or self.disco_score_max is not None
             or self.disco_mass_min is not None
             or self.disco_mass_max is not None ):
-            if( len(mass.shape)!=2 ):
+            if( len(mass.shape)!=1 ):
                 msg = 'DisCo: use of more than one variable in combination with selection'
                 msg += ' is not yet implemented.'
                 raise Exception(msg)
-            mask = np.ones(len(predictions_column))
-            if self.disco_label is not None: mask = np.where(labels != self.disco_label, 0, mask)
-            if self.disco_mass_min is not None: mask = np.where(mass < self.disco_mass_min, 0, mask)
-            if self.disco_mass_max is not None: mask = np.where(mass > self.disco_mass_max, 0, mask)
-            mask = mask.astype(bool)
+            mask = torch.ones(len(predictions_column)).to(predictions_column.device)
+            if self.disco_label is not None: mask = torch.where(labels != self.disco_label, 0, mask)
+            if self.disco_score_min is not None: mask = torch.where(predictions_column < self.disco_score_min, 0, mask)
+            if self.disco_score_max is not None: mask = torch.where(predictions_column > self.disco_score_max, 0, mask)
+            if self.disco_mass_min is not None: mask = torch.where(mass < self.disco_mass_min, 0, mask)
+            if self.disco_mass_max is not None: mask = torch.where(mass > self.disco_mass_max, 0, mask)
+            mask = mask.bool()
             predictions_column = predictions_column[mask]
             mass = mass[mask]
 
+        # safety for too small tensors (especially after filtering as above).
+        # the threshold value is a little arbitrary;
+        # but the disco becomes nan for tensors of length 0 (and 1?),
+        # so that is the absolute minimum
+        if predictions_column.size()[0]<10:
+            discoloss = 1
+
         # calculate distance correlation
-        if len(mass.shape)==1:
+        elif len(mass.shape)==1:
             discoloss = distance_correlation(predictions_column, mass, power=self.disco_power)
         elif len(mass.shape)==2:
             discoloss = sum([distance_correlation(predictions_column, mass[:,idx], power=self.disco_power)
@@ -654,7 +669,7 @@ class ParticleTransformerDisco(nn.Module):
             raise Exception(msg)
 
         # make the sum
-        if( math.isnan(discoloss.item()) or np.isnan(discoloss.item()) ):
+        if( not isinstance(discoloss, int) and (math.isnan(discoloss.item()) or np.isnan(discoloss.item())) ):
             totalloss = (1 + self.disco_alpha) * celoss
         else:
             totalloss = celoss + self.disco_alpha * discoloss

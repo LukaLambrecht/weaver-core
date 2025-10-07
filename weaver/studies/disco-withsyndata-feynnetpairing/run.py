@@ -25,9 +25,9 @@ if __name__=='__main__':
     # sample list for testing data
     sample_config_test = os.path.abspath('configs/samples_hh4b_multimh_vs_syndata_testing_feynnetpairing.yaml')
     # output dir
-    outputdir = os.path.join(thisdir, 'output_part_extra2')
+    outputdir = os.path.join(thisdir, 'output_part')
     # set alpha range
-    alphas = [5]
+    alphas = [5, 10, 20, 50]
     # network settings
     num_epochs = 50
     steps_per_epoch = 1000
@@ -39,7 +39,7 @@ if __name__=='__main__':
     runmode = 'slurm'
     #conda_activate = 'source /eos/user/l/llambrec/miniforge3/bin/activate'
     #conda_env = 'weaver'
-    slurmscript = 'sjob_weaver_part_extra.sh'
+    slurmscript = 'sjob_weaver_part.sh'
     env_cmds = ([
         'source /blue/avery/llambre1.brown/miniforge3/bin/activate',
         'conda activate weaver',
@@ -82,9 +82,10 @@ if __name__=='__main__':
             # (note: the specific model must support this!)
             network_kwargs = f'disco_alpha {alpha}'
             network_kwargs += f' disco_power 1'
-            #network_kwargs += f' disco_label 0' # only bkg events
-            #network_kwargs += f' disco_mass_min 50' # mass range
-            #network_kwargs += f' disco_mass_max 200' # mass range
+            network_kwargs += f' disco_label 0' # only bkg events
+            network_kwargs += f' disco_score_min 0.5' # score range
+            network_kwargs += f' disco_mass_min 50' # mass range
+            network_kwargs += f' disco_mass_max 200' # mass range
 
             # set model prefix
             model_prefix = os.path.join(this_outputdir, 'network')

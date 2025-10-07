@@ -47,7 +47,8 @@ file_magic:
     HHto4b_mH_180_powheg_pythia8_Run3_.+\.root: 180
     HHto4b_mH_190_powheg_pythia8_Run3_.+\.root: 190
     HHto4b_mH_200_powheg_pythia8_Run3_.+\.root: 200
-    SyntheticData.+\.root: 1
+    jetmet.+\.root: 1
+    parkinghh.+\.root: 2
 
 new_variables:
     # Define new variables as a function of existing variables
@@ -69,6 +70,7 @@ new_variables:
     isHHto4b_mH_180: sample==180
     isHHto4b_mH_190: sample==190
     isHHto4b_mH_200: sample==200
+    isHHto4b: sample>10
     isHHto4b_mH_variations: ((sample>10) & (sample!=125))
     isSignal: sample>10
     isBackground: sample<10
@@ -93,10 +95,8 @@ inputs:
       length: 6
       pad_mode: wrap
       vars:
-         - [ak4_px, null]
-         - [ak4_py, null]
-         - [ak4_pz, null]
-         - [ak4_energy, null]
+         - [ak4_eta, null]
+         - [ak4_phi, null]
    features:
       length: 6
       pad_mode: wrap
@@ -109,16 +109,19 @@ inputs:
          - [ak4_btag_M, null]
          - [ak4_btag_T, null]
          - [ak4_btag_XT, null]
+   vectors:
+      length: 6
+      pad_mode: wrap
+      vars:
+         - [ak4_px, null]
+         - [ak4_py, null]
+         - [ak4_pz, null]
+         - [ak4_energy, null]
    mask:
       length: 6
       pad_mode: constant
       vars:
          - [ak4_mask, null]
-
-   decorrelate:
-      length: 1
-      vars:
-         - hh_average_mass
 
 labels:
    type: simple
@@ -144,10 +147,12 @@ weights:
    reweight_threshold: 0
    reweight_load_fraction: 1.
    reweight_vars:
-      #hh_average_mass: [50., 60., 70., 80., 90., 100., 110., 120., 130., 140., 150., 160., 170., 180., 190., 200., 250., 30000.]
-      #dHH_NbtagM: [0, 10]
-      dHH_H1_mass: [50., 60., 70., 80., 90., 100., 110., 120., 130., 140., 150., 160., 170., 180., 190., 200., 250., 30000.]
-      dHH_H2_mass: [50., 60., 70., 80., 90., 100., 110., 120., 130., 140., 150., 160., 170., 180., 190., 200., 250., 30000.]
+     #hh_average_mass: [50., 60., 70., 80., 90., 100., 110., 120., 130., 140., 150., 160., 170., 180., 190., 200., 250., 30000.]
+     #hh_average_mass: [0, 30000]
+     dHH_H1_mass: [50., 60., 70., 80., 90., 100., 110., 120., 130., 140., 150., 160., 170., 180., 190., 200., 250., 30000.]
+     dHH_H2_mass: [50., 60., 70., 80., 90., 100., 110., 120., 130., 140., 150., 160., 170., 180., 190., 200., 250., 30000.]
+     #dHH_NbtagM: [0, 10]
+     #n_ak4: [3.5, 4.5, 5.5, 6.5, 7.5, 10.5]
    reweight_discard_under_overflow: false
    reweight_classes: [isSignal, isBackground]
    class_weights: [1, 1]

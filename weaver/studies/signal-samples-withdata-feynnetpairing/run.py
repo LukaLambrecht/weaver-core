@@ -15,24 +15,26 @@ if __name__=='__main__':
     # common settings
     weaverdir = os.path.join(weavercoredir, 'weaver')
     # data config
-    #data_config = os.path.abspath('configs/data_config_part_nodisco.yaml')
-    data_config = os.path.abspath('configs/data_config_part_nodisco_preselected.yaml')
+    data_config = os.path.abspath('configs/data_config_part_train_data_test_data.yaml')
     # model config
-    #model_config = os.path.abspath('../disco-withsyndata-feynnetpairing/results_20250725/output_part/alpha_5p00/training_0/model_config.py')
-    #model_config = os.path.abspath('../disco-withsyndata/results_20250522/output_part/alpha_10p00/training_0/model_config.py')
-    #model_config = os.path.abspath('../signal-samples-withsyndata-feynnetpairing-preselected/output_part_baseline/model_config.py')
-    model_config = os.path.abspath('../signal-samples-withdata-feynnetpairing-preselected/output_part_test_biggernetwork/model_config.py')
-    # model weights
-    model_weights = os.path.join(os.path.dirname(model_config), 'network_best_epoch_state.pt')
-    # sample list
-    sample_config = os.path.abspath('configs/samples_testing_preselected.yaml')
+    model_config = os.path.abspath('configs/model_part.py')
+    # sample list for training data
+    sample_config_train = os.path.abspath('configs/samples_hh4b_multimh_vs_data_training_feynnetpairing.yaml')
+    # sample list for testing data
+    sample_config_test = os.path.abspath('configs/samples_hh4b_multimh_vs_data_testing_feynnetpairing.yaml')
     # output dir
-    outputdir = os.path.join(thisdir, 'output_test_datatrain_preselected_biggernetwork')
+    outputdir = os.path.join(thisdir, 'output_part_test_biggernetwork')
+    # network settings
+    num_epochs = 30
+    steps_per_epoch = 300
+    batch_size = 256
+    # specify whether to run training or only print preparatory steps
+    do_training = True
     # runmode and job settings
     runmode = 'slurm'
     #conda_activate = 'source /eos/user/l/llambrec/miniforge3/bin/activate'
     #conda_env = 'weaver'
-    slurmscript = 'sjob_weaver_test_datatrain_preselected_biggernetwork.sh'
+    slurmscript = 'sjob_weaver_part_test_biggernetwork.sh'
     env_cmds = ([
         'env_path=/blue/avery/llambre1.brown/miniforge3/envs/weaver/bin/',
         'export PATH=$env_path:$PATH',
@@ -40,11 +42,8 @@ if __name__=='__main__':
     ])
     gpus = '0'
 
-    # network settings
-    batch_size = 1024
-
     # check if all config files exist
-    files_to_check = [data_config, model_config, model_weights, sample_config]
+    files_to_check = [data_config, model_config, sample_config_train, sample_config_test]
     for f in files_to_check:
         if not os.path.exists(f):
             raise Exception('File {} does not exist.'.format(f))
@@ -62,26 +61,40 @@ if __name__=='__main__':
     os.system(f'cp {data_config} {this_data_config}')
     this_model_config = os.path.join(outputdir, 'model_config.py')
     os.system(f'cp {model_config} {this_model_config}')
-    this_model_weights = os.path.join(outputdir, 'model_weights.pt')
-    os.system(f'cp {model_weights} {this_model_weights}')
-    this_sample_config = os.path.join(outputdir, 'sample_config.yaml')
-    os.system(f'cp {sample_config} {this_sample_config}')
+    this_sample_config_train = os.path.join(outputdir, 'sample_config_train.yaml')
+    os.system(f'cp {sample_config_train} {this_sample_config_train}')
+    this_sample_config_test = os.path.join(outputdir, 'sample_config_test.yaml')
+    os.system(f'cp {sample_config_test} {this_sample_config_test}')
+
+    # set model prefix
+    model_prefix = os.path.join(outputdir, 'network')
+
+    # set additional network options
+    # (note: the specific model must support this!)
+    network_kwargs = None
 
     # set output file for test results
     test_output = os.path.join(outputdir, 'output.root')
 
     # make the command
-    cmd = 'weaver --predict'
+    cmd = 'weaver'
+    cmd += f' --data-train {this_sample_config_train}'
     cmd += f' --data-config {this_data_config}'
     cmd += f' --network-config {this_model_config}'
-    cmd += f' --model-prefix {model_weights}'
+    if network_kwargs is not None: cmd += f' --network-kwargs {network_kwargs}'
+    cmd += f' --num-epochs {num_epochs}'
+    cmd += f' --steps-per-epoch {steps_per_epoch}'
     cmd += f' --batch-size {batch_size}'
-    cmd += f' --data-test {this_sample_config}'
+    cmd += f' --model-prefix {model_prefix}'
+    cmd += f' --data-test {this_sample_config_test}'
     cmd += f' --predict-output {test_output}'
     if gpus is not None: cmd += f' --gpus {gpus}'
     # data loading options
     #cmd += ' --in-memory --fetch-step 1'
+    cmd += ' --fetch-step 0.05'
     cmd += ' --copy-inputs'
+    # switch between training or just printing
+    if not do_training: cmd += ' --print'
 
     # run or submit commands
     if runmode == 'local':
@@ -95,11 +108,11 @@ if __name__=='__main__':
         slurm_options = {
           'job_name': job_name,
           'env_cmds': env_cmds,
-          'memory': '32G',
+          'memory': '16G',
           'time': '05:00:00',
           'constraint': 'el9'
         }
-        if gpus is not None and gpus!='""':
+        if gpus!='""':
             slurm_options['gres'] = 'gpu:1'
             slurm_options['gpus'] = '1'
         st.submitCommandAsSlurmJob(cmd, slurmscript, **slurm_options)
