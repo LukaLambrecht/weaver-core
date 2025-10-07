@@ -43,7 +43,7 @@ To train a neural network using `weaver`, you need to prepare:
 - A python _model configuration file_ providing the neural network module and the loss function.
 
 See the [upstream repo](https://github.com/hqucms/weaver-core) for more details.
-See the [configs](configs) subfolder for prepared examples for this specific case.
+See the [weaver/configs](weaver/configs) subfolder for prepared examples for this specific case.
 
 You also need sample lists specifying the files to be used for training and testing.
 See the [weaver/configs](weaver/configs) subfolder for prepared examples for this specific case.
