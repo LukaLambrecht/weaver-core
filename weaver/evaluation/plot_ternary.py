@@ -33,7 +33,7 @@ def plot_ternary(events,
     ax = fig.add_subplot(projection='ternary')
 
     # loop over categories
-    for category_name, category_settings in categories.items():
+    for category_name, category_settings in list(categories.items())[::-1]:
         cat_mask = cat_masks[category_name]
 
         # get the three scores
@@ -48,7 +48,9 @@ def plot_ternary(events,
         scores_3 = scores[category_names[2]]
         ax.scatter(scores_1, scores_2, scores_3,
                   color = category_settings['color'],
-                  label = category_settings['label'])
+                  label = category_settings['label'],
+                  alpha = 0.05,
+                  s = 2)
 
     ax.grid()
     ax.set_tlabel(category_names[0] + ' score', fontsize=12)

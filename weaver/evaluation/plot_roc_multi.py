@@ -110,7 +110,7 @@ def plot_roc_multi(events,
                 # get scores for signal and background
                 sig_score_branch = signal_category_settings['score_branch']
                 bkg_score_branch = background_category_settings['score_branch']
-                scores = np.divide(events[sig_score_branch], events[bkg_score_branch])
+                scores = np.divide(events[sig_score_branch], events[sig_score_branch] + events[bkg_score_branch])
                 scores_sig = scores[masks[signal_category_name]]
                 scores_bkg = scores[masks[background_category_name]]
                 weights_sig = np.ones(len(scores_sig))

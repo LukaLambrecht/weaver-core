@@ -15,24 +15,24 @@ if __name__=='__main__':
     # common settings
     weaverdir = os.path.join(weavercoredir, 'weaver')
     # data config
-    #data_config = os.path.abspath('configs/data_config_pnet.yaml')
-    data_config = os.path.abspath('configs/data_config_part.yaml')
+    data_config = os.path.abspath('configs/data_config_pnet.yaml')
+    #data_config = os.path.abspath('configs/data_config_part.yaml')
     # model config
-    #model_config = os.path.abspath('configs/model_config_pnet.py')
-    model_config = os.path.abspath('configs/model_config_part.py')
+    model_config = os.path.abspath('configs/model_config_pnet.py')
+    #model_config = os.path.abspath('configs/model_config_part.py')
     # sample list for training data
-    sample_config_train = os.path.abspath('configs/samplelists/uflhpg/samples_training_smalltest.yaml')
+    sample_config_train = os.path.abspath('configs/samplelists/uflhpg/samples_training.yaml')
     # sample list for testing data
-    sample_config_test = os.path.abspath('configs/samplelists/uflhpg/samples_testing_smalltest.yaml')
+    sample_config_test = os.path.abspath('configs/samplelists/uflhpg/samples_testing.yaml')
     # output dir
     outputdir = os.path.join(thisdir, 'output_test')
     # network settings
-    num_epochs = 10
-    steps_per_epoch = 30
+    num_epochs = 50
+    steps_per_epoch = 300
     batch_size = 512
     # runmode and job settings
     # (choose from 'local', 'condor', and 'slurm')
-    runmode = 'local'
+    runmode = 'slurm'
     gpus= '0'
 
     # check if all config files exist
@@ -75,7 +75,8 @@ if __name__=='__main__':
     cmd += f' --data-test {this_sample_config_test}'
     cmd += f' --predict-output {test_output}'
     # data loading options
-    cmd += ' --in-memory --fetch-step 1'
+    cmd += ' --num-workers 0'
+    #cmd += ' --in-memory --fetch-step 1'
     cmd += ' --copy-inputs'
     # compute options
     if gpus is not None: cmd += f' --gpus {gpus}'
