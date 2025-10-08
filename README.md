@@ -26,6 +26,11 @@ conda activate weaver
 Install pytorch. This step is a bit tricky since it depends on your OS/CUDA version.
 See https://pytorch.org/get-started for more details.
 The default case is simply `pip install torch`.
+However, if you want support for GPUs (which we do), you need to install it as follows:
+```
+conda install cuda=12.8
+pip install torch torchvision torchaudio --index-url https://download.pytorch.org/whl/cu128
+```
 
 Then, install weaver. This will install also all the dependencies except for pytorch.
 ```
