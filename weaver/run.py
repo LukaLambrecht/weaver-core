@@ -1,7 +1,8 @@
 import os
 import sys
 import json
-import numpy as np
+import shutil
+import numpy as np  
 
 thisdir = os.path.abspath(os.path.dirname(__file__))
 weavercoredir = os.path.abspath(os.path.join(thisdir, '../'))
@@ -21,9 +22,9 @@ if __name__=='__main__':
     model_config = os.path.abspath('configs/model_config_pnet.py')
     #model_config = os.path.abspath('configs/model_config_part.py')
     # sample list for training data
-    sample_config_train = os.path.abspath('configs/samplelists/uflhpg/samples_training.yaml')
+    sample_config_train = os.path.abspath('configs/samplelists/oscar/samples_training.yaml')
     # sample list for testing data
-    sample_config_test = os.path.abspath('configs/samplelists/uflhpg/samples_testing.yaml')
+    sample_config_test = os.path.abspath('configs/samplelists/oscar/samples_testing.yaml')
     # output dir
     outputdir = os.path.join(thisdir, 'output_test')
     # network settings
@@ -41,10 +42,9 @@ if __name__=='__main__':
         if not os.path.exists(f):
             raise Exception('File {} does not exist.'.format(f))
 
-    # make output directory
+    # make output directory (remove if it already exists)
     if os.path.exists(outputdir):
-        msg = f'Output directory {outputdir} already exists.'
-        raise Exception(msg)
+        shutil.rmtree(outputdir)
     os.makedirs(outputdir)
 
     # copy the config files to the output directory
@@ -92,8 +92,11 @@ if __name__=='__main__':
           jobflavour='workday', conda_activate=conda_activate, conda_env=conda_env)
     elif runmode=='slurm':
         slurmscript = 'sjob_weaver.sh'
+        # remove old slurm script if it exists
+        if os.path.exists(slurmscript):
+            os.remove(slurmscript)
         env_cmds = ([
-          'source /eos/user/l/llambrec/miniforge3/bin/activate',
+          'source /users/tgillin/miniconda3/etc/profile.d/conda.sh',
           'conda activate weaver',
           f'cd {thisdir}'
         ])
@@ -102,10 +105,10 @@ if __name__=='__main__':
           'job_name': job_name,
           'env_cmds': env_cmds,
           'memory': '16G',
-          'time': '05:00:00',
-          'constraint': 'el9'
+          'time': '05:00:00'
         }
         if gpus!='""':
+            slurm_options['partition'] = 'gpu'
             slurm_options['gres'] = 'gpu:1'
             slurm_options['gpus'] = '1'
         st.submitCommandAsSlurmJob(cmd, slurmscript, **slurm_options)
