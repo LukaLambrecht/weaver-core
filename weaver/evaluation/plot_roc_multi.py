@@ -100,12 +100,18 @@ def plot_roc_multi(events,
 
     # initialize figure
     fig, ax = plt.subplots()
-    cmap = plt.get_cmap('cool', len(signal_categories)*len(background_categories))
+    #nlines = len(signal_categories)*len(background_categories)
+    nlines = int(len(all_categories)*(len(all_categories)-1)/2)
+    cmap = plt.get_cmap('cool', nlines)
     cidx = 0
 
     # loop over pairs of categories
-    for signal_category_name, signal_category_settings in signal_categories.items():
-        for background_category_name, background_category_settings in background_categories.items():
+    #for signal_category_name, signal_category_settings in signal_categories.items():
+    #    for background_category_name, background_category_settings in background_categories.items():
+    # update: loop over all pairs, not just signal vs background
+    for sidx, (signal_category_name, signal_category_settings) in enumerate(all_categories.items()):
+        for bidx, (background_category_name, background_category_settings) in enumerate(all_categories.items()):
+                if bidx <= sidx: continue
 
                 # get scores for signal and background
                 sig_score_branch = signal_category_settings['score_branch']
@@ -149,13 +155,23 @@ def plot_roc_multi(events,
     # other plot settings
     dummy_efficiency = np.linspace(0, 1, num=101)
     ax.plot(dummy_efficiency, dummy_efficiency,
-      color='darkblue', linewidth=3, linestyle='--', label='Baseline')
+      color='darkblue', linewidth=3, linestyle='--')
     ax.set_xlabel('Background pass-through', fontsize=12)
     ax.set_ylabel('Signal efficiency', fontsize=12)
     ax.grid(which='both')
     leg = ax.legend()
+
+    # save figure
     fig.tight_layout()
     figname = os.path.join(outputdir, 'roc.png')
+    fig.savefig(figname)
+    print(f'Saved figure {figname}.')
+
+    # same with log scale on x-axis
+    ax.set_xscale('log')
+    ax.set_xlim((1e-4, 1))
+    fig.tight_layout()
+    figname = os.path.join(outputdir, 'roc_log.png')
     fig.savefig(figname)
     print(f'Saved figure {figname}.')
     plt.close()
