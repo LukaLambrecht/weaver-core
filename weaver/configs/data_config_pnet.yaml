@@ -5,6 +5,12 @@
 
 
 selection:
+  ( ( recojet_pt > 10. )
+  & ( np.abs(recojet_eta) < 0.9 ) )
+
+test_time_selection:
+  ( ( recojet_pt > 10. )
+  & ( np.abs(recojet_eta) < 0.9 ) )
 
 new_variables:
    pfcand_mask: ak.ones_like(pfcand_pt)
