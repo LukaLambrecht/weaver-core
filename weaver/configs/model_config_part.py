@@ -34,8 +34,38 @@ def get_model(data_config, **kwargs):
     print(f'Found following input feature dims: {features_dims}')
     print(f'Found following number of classes: {num_classes}')
 
+    # set arguments
+    # make model arguments
+    cfg = dict(
+      # basic
+      input_dim = features_dims,
+      num_classes = num_classes,
+      # network configurations
+      pair_input_dim=4,
+      pair_extra_dim=0,
+      remove_self_pair=False,
+      use_pre_activation_pair=True,
+      embed_dims=[128, 256, 128],
+      pair_embed_dims=[32, 64, 32],
+      num_heads=8,
+      num_layers=6,
+      num_cls_layers=2,
+      block_params=None,
+      cls_block_params={'dropout': 0, 'attn_dropout': 0, 'activation_dropout': 0},
+      fc_params=[],
+      activation='gelu',
+      # misc
+      trim=True,
+      for_inference=False,
+      use_amp=False,
+    )
+    cfg.update(**kwargs)
+
+    print('Model config:')
+    print(json.dumps(cfg, indent=2))
+
     # get model
-    model = ParticleTransformerWrapper(input_dim=features_dims, num_classes=num_classes, **kwargs)
+    model = ParticleTransformerWrapper(**cfg)
 
     model_info = {
         'input_names':list(data_config.input_names),

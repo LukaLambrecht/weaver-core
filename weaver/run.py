@@ -13,6 +13,20 @@ import weaver.utils.jobsubmission.slurmtools as st
 
 if __name__=='__main__':
 
+    # settings based on user
+    user = os.getenv('USER')
+    miniforge = None
+    loc = 'oscar'
+    if user=='llambre1.brown':
+        miniforge = '/blue/avery/llambre1.brown/miniforge3/bin/activate'
+        loc = 'uflhpg'
+    if user=='llambrec':
+        miniforge = '/eos/user/l/llambrec/miniforge3/bin/activate'
+        loc = 'lxplus'
+    if user=='tgillin':
+        miniforge = '/users/tgillin/miniconda3/etc/profile.d/conda.sh'
+        loc = 'oscar'
+
     # common settings
     weaverdir = os.path.join(weavercoredir, 'weaver')
     # data config
@@ -22,11 +36,11 @@ if __name__=='__main__':
     model_config = os.path.abspath('configs/model_config_pnet.py')
     #model_config = os.path.abspath('configs/model_config_part.py')
     # sample list for training data
-    sample_config_train = os.path.abspath('configs/samplelists/oscar/samples_training.yaml')
+    sample_config_train = os.path.abspath(f'configs/samplelists/{loc}/samples_training.yaml')
     # sample list for testing data
-    sample_config_test = os.path.abspath('configs/samplelists/oscar/samples_testing.yaml')
+    sample_config_test = os.path.abspath(f'configs/samplelists/{loc}/samples_testing.yaml')
     # output dir
-    outputdir = os.path.join(thisdir, 'output_test')
+    outputdir = os.path.join(thisdir, 'output_test2')
     # network settings
     num_epochs = 50
     steps_per_epoch = 300
@@ -37,7 +51,7 @@ if __name__=='__main__':
     gpus= '0'
 
     # check if all config files exist
-    files_to_check = [data_config, model_config, sample_config_train, sample_config_test]
+    files_to_check = [data_config, model_config, sample_config_train, sample_config_test, miniforge]
     for f in files_to_check:
         if not os.path.exists(f):
             raise Exception('File {} does not exist.'.format(f))
@@ -86,7 +100,7 @@ if __name__=='__main__':
         print(cmd)
         os.system(cmd)
     elif runmode=='condor':
-        conda_activate = 'source /eos/user/l/llambrec/miniforge3/bin/activate'
+        conda_activate = f'source {miniforge}'
         conda_env = 'weaver'
         ct.submitCommandAsCondorJob('cjob_weaver', cmd,
           jobflavour='workday', conda_activate=conda_activate, conda_env=conda_env)
@@ -96,7 +110,7 @@ if __name__=='__main__':
         if os.path.exists(slurmscript):
             os.remove(slurmscript)
         env_cmds = ([
-          'source /users/tgillin/miniconda3/etc/profile.d/conda.sh',
+          f'source {miniforge}',
           'conda activate weaver',
           f'cd {thisdir}'
         ])
@@ -105,10 +119,10 @@ if __name__=='__main__':
           'job_name': job_name,
           'env_cmds': env_cmds,
           'memory': '16G',
-          'time': '05:00:00'
+          'time': '10:00:00'
         }
         if gpus!='""':
-            slurm_options['partition'] = 'gpu'
+            #slurm_options['partition'] = 'gpu'
             slurm_options['gres'] = 'gpu:1'
             slurm_options['gpus'] = '1'
         st.submitCommandAsSlurmJob(cmd, slurmscript, **slurm_options)
