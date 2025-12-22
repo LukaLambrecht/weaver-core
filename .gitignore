@@ -1,3 +1,6 @@
+# job files
+sjob_*
+
 # output folders
 **output_*
 logs/
