@@ -139,7 +139,10 @@ def plot_roc_multi(events,
                 auc = roc_auc_score(this_labels, this_scores, sample_weight=np.abs(this_weights))
 
                 # calculate signal and background efficiency
-                thresholds = np.linspace(np.amin(this_scores), np.amax(this_scores), num=100)
+                thresholds = np.concatenate((
+                    np.linspace(np.amin(this_scores), np.amax(this_scores)*0.9, num=100),
+                    np.linspace(np.amax(this_scores)*0.9, np.amax(this_scores), num=500),
+                ))
                 efficiency_sig = np.zeros(len(thresholds))
                 efficiency_bkg = np.zeros(len(thresholds))
                 for idx, threshold in enumerate(thresholds):
@@ -175,7 +178,7 @@ def plot_roc_multi(events,
 
     # same with log scale on x-axis
     ax.set_xscale('log')
-    ax.set_xlim((1e-4, 1))
+    ax.set_xlim((1e-5, 1))
     fig.tight_layout()
     figname = os.path.join(outputdir, 'roc_log.png')
     fig.savefig(figname)
