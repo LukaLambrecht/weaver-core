@@ -160,11 +160,18 @@ def plot_roc_multi(events,
                 ax.plot(efficiency_bkg, efficiency_sig,
                   color=cmap(cidx), linewidth=3, label=label)
                 cidx += 1
-    
-    # other plot settings
+
+    # add random guessing line
     dummy_efficiency = np.linspace(0, 1, num=101)
     ax.plot(dummy_efficiency, dummy_efficiency,
-      color='darkblue', linewidth=3, linestyle='--')
+      color='darkblue', linewidth=3, linestyle='--', label='Random guessing')
+
+    # ad-hoc addition (maybe clean up later):
+    # add reference
+    ax.scatter(0.00216, 0.1957, s=35, color=cmap(0), edgecolors='red', label='b vs. c (ALEPH reference)')
+    ax.scatter(0.00043, 0.1957, s=35, color=cmap(1), edgecolors='red', label='b vs. udsg (ALEPH reference)')
+
+    # other plot settings
     ax.set_xlabel('Background pass-through', fontsize=12)
     ax.set_ylabel('Signal efficiency', fontsize=12)
     ax.grid(which='both')
