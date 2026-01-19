@@ -6,6 +6,7 @@ import numpy as np
 
 thisdir = os.path.abspath(os.path.dirname(__file__))
 weavercoredir = os.path.abspath(os.path.join(thisdir, '../../'))
+sys.path.append(weavercoredir)
 from weaver.nn.model.ParticleNet import ParticleNet
 
 

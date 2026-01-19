@@ -1,5 +1,6 @@
 #!/usr/bin/env python
 
+# import external modules
 import os
 import ast
 import sys
@@ -11,8 +12,15 @@ import numpy as np
 import math
 import copy
 import torch
-
 from torch.utils.data import DataLoader
+
+# import tools from this repo
+# note: using sys.path.insert rather than sys.path.append
+#       to make sure this instance of weaver gets imported
+#       (in case there are multiple installed)
+thisdir = os.path.abspath(os.path.dirname(__file__))
+weavercoredir = os.path.abspath(os.path.join(thisdir, '../'))
+sys.path.insert(0, weavercoredir)
 from weaver.utils.logger import _logger, _configLogger
 from weaver.utils.dataset import SimpleIterDataset
 from weaver.utils.import_tools import import_module
@@ -980,7 +988,7 @@ def _main(args):
 
 def main():
     
-       # parse command line args
+    # parse command line args
     args = parser.parse_args()
 
     # set number of instances ('samples') or number of batches ('steps') per epoch for training and validation

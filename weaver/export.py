@@ -21,7 +21,7 @@ if __name__=='__main__':
     outputname = 'model.onnx'
 
     # make command
-    cmd = 'weaver'
+    cmd = 'python train.py'
     cmd += f' -c {dataconfig}'
     cmd += f' -n {modelconfig}'
     cmd += f' -m {modelstate}'

@@ -30,17 +30,20 @@ if __name__=='__main__':
     # common settings
     weaverdir = os.path.join(weavercoredir, 'weaver')
     # data config
-    data_config = os.path.abspath('configs/data_config_pnet.yaml')
+    #data_config = os.path.abspath('configs/data_config_pnet.yaml')
+    data_config = os.path.abspath('configs/data_config_pnettagger.yaml')
     #data_config = os.path.abspath('configs/data_config_part.yaml')
+    #data_config = os.path.abspath('configs/data_config_part_standardized.yaml')
     # model config
-    model_config = os.path.abspath('configs/model_config_pnet.py')
+    #model_config = os.path.abspath('configs/model_config_pnet.py')
+    model_config = os.path.abspath('configs/model_config_pnettagger.py')
     #model_config = os.path.abspath('configs/model_config_part.py')
     # sample list for training data
-    sample_config_train = os.path.abspath(f'configs/samplelists/{loc}/samples_training.yaml')
+    sample_config_train = os.path.abspath(f'configs/samplelists/{loc}/samples_training_withsv.yaml')
     # sample list for testing data
-    sample_config_test = os.path.abspath(f'configs/samplelists/{loc}/samples_testing.yaml')
+    sample_config_test = os.path.abspath(f'configs/samplelists/{loc}/samples_testing_withsv.yaml')
     # output dir
-    outputdir = os.path.join(thisdir, 'output_test2')
+    outputdir = os.path.join(thisdir, 'output_temp_withsv_withpointconv3')
     # network settings
     num_epochs = 50
     steps_per_epoch = 300
@@ -78,7 +81,7 @@ if __name__=='__main__':
     test_output = os.path.join(outputdir, 'output.root')
 
     # make the command
-    cmd = 'weaver'
+    cmd = 'python train.py'
     cmd += f' --data-train {this_sample_config_train}'
     cmd += f' --data-config {this_data_config}'
     cmd += f' --network-config {this_model_config}'
@@ -119,10 +122,10 @@ if __name__=='__main__':
           'job_name': job_name,
           'env_cmds': env_cmds,
           'memory': '16G',
-          'time': '10:00:00'
+          'time': '15:00:00'
         }
         if gpus!='""':
             #slurm_options['partition'] = 'gpu'
-            slurm_options['gres'] = 'gpu:1'
+            #slurm_options['gres'] = 'gpu:1'
             slurm_options['gpus'] = '1'
         st.submitCommandAsSlurmJob(cmd, slurmscript, **slurm_options)
