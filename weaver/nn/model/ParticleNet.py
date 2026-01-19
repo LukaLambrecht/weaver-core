@@ -4,8 +4,10 @@ Paper: "ParticleNet: Jet Tagging via Particle Clouds" - https://arxiv.org/abs/19
 
 Adapted from the DGCNN implementation in https://github.com/WangYueFt/dgcnn/blob/master/pytorch/model.py.
 '''
-import numpy as np
+import os
+import sys
 import torch
+import numpy as np
 import torch.nn as nn
 
 
@@ -242,6 +244,8 @@ class ParticleNetTagger(nn.Module):
                  pf_features_dims,
                  sv_features_dims,
                  num_classes,
+                 pf_points_dims=None, # keyword argument, but must be provided
+                 sv_points_dims=None, # keyword argument, but must be provided
                  conv_params=[(7, (32, 32, 32)), (7, (64, 64, 64))],
                  fc_params=[(128, 0.1)],
                  use_fusion=True,
@@ -254,8 +258,12 @@ class ParticleNetTagger(nn.Module):
         super(ParticleNetTagger, self).__init__(**kwargs)
         self.pf_input_dropout = nn.Dropout(pf_input_dropout) if pf_input_dropout else None
         self.sv_input_dropout = nn.Dropout(sv_input_dropout) if sv_input_dropout else None
-        self.pf_conv = FeatureConv(pf_features_dims, 32)
-        self.sv_conv = FeatureConv(sv_features_dims, 32)
+        self.pf_features_conv = FeatureConv(pf_features_dims, 32)
+        self.sv_features_conv = FeatureConv(sv_features_dims, 32)
+        if pf_points_dims is None: raise Exception('pf_points_dims must be provided.')
+        if sv_points_dims is None: raise Exception('sv_points_dims must be provided.')
+        self.pf_points_conv = FeatureConv(pf_points_dims, 4)
+        self.sv_points_conv = FeatureConv(sv_points_dims, 4)
         self.pn = ParticleNet(input_dims=32,
                               num_classes=num_classes,
                               conv_params=conv_params,
@@ -275,7 +283,30 @@ class ParticleNetTagger(nn.Module):
             sv_points *= sv_mask
             sv_features *= sv_mask
 
-        points = torch.cat((pf_points, sv_points), dim=2)
-        features = torch.cat((self.pf_conv(pf_features * pf_mask) * pf_mask, self.sv_conv(sv_features * sv_mask) * sv_mask), dim=2)
+        # append the secondary vertices to the particles
+        # note: the dimensions of the input feature tensors are:
+        #       (number of instances, number of particle features, number of particles)
+        #       and (number of instances, number of vertex features, number of vertices),
+        #       but they get transformed to (number of instances, 32, number of particles)
+        #       and (number of instances, 32, number of vertices),
+        #       so that the result is (number of instances, 32, number of particles + vertices).
+        # note: for the points, a similar transformation is not performed,
+        #       and instead it is assumed that the coordinates are consistent between particles and vertices.
+        #       update: now also do the convolution for coordinates, to allow different coordinate sets
+        #       to be used for particles and vertices.
+        #points = torch.cat((pf_points, sv_points), dim=2) # orig
+        points = torch.cat((self.pf_points_conv(pf_points), self.sv_points_conv(sv_points)), dim=2)
+        features = torch.cat((self.pf_features_conv(pf_features * pf_mask) * pf_mask,
+                              self.sv_features_conv(sv_features * sv_mask) * sv_mask), dim=2)
         mask = torch.cat((pf_mask, sv_mask), dim=2)
+
+        # printouts for debugging
+        #print(pf_points.size())
+        #print(pf_features.size())
+        #print(sv_points.size())
+        #print(sv_features.size())
+        #print(points.size())
+        #print(features.size())
+        #sys.exit()
+
         return self.pn(points, features, mask)
