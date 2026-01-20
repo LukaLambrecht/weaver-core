@@ -12,14 +12,11 @@ test_time_selection:
 new_variables:
    # masks
    pfcand_mask: ak.ones_like(pfcand_pt)
-   recojet_sv_mask: ( recojet_sv_chi2Normalized > 0. )
+   sv_mask: ak.ones_like(sv_chi2Normalized)
    # input features
    pfcand_pt_log: np.log(pfcand_pt)
    pfcand_e_log: np.log(pfcand_e)
    pfcand_drrel: np.hypot(pfcand_thetarel, pfcand_phirel)
-   recojet_pt_log: np.log(recojet_pt)
-   recojet_e_log: np.log(recojet_e)
-   recojet_mass_log: np.log(recojet_mass)
 
 preprocess:
   method: manual
@@ -83,36 +80,33 @@ inputs:
       length: 1
       pad_mode: constant
       vars:
-         - [recojet_sv_xrel, null]
-         - [recojet_sv_yrel, null]
-         - [recojet_sv_zrel, null]
-         - [recojet_sv_p, null]
+         - [sv_xrel, null]
+         - [sv_yrel, null]
+         - [sv_zrel, null]
+         - [sv_p, null]
    sv_features:
       length: 1
       pad_mode: constant
       vars:
-         - [recojet_sv_xrel, null]
-         - [recojet_sv_yrel, null]
-         - [recojet_sv_zrel, null]
-         - [recojet_sv_thetarel, null]
-         - [recojet_sv_phirel, null]
-         - [recojet_sv_p, null]
-         - [recojet_sv_prel, null]
-         - [recojet_sv_nTracks, null]
-         - [recojet_sv_mass, null]
-         - [recojet_sv_dxy, null]
-         - [recojet_sv_dxyz, null]
-         - [recojet_sv_chi2, null]
-         - [recojet_sv_chi2Normalized, null]
-         - [recojet_sv_cosPointing, null]
-         - [recojet_pt_log, null]
-         - [recojet_e_log, null]
-         - [recojet_mass_log, null]
+         - [sv_xrel, null]
+         - [sv_yrel, null]
+         - [sv_zrel, null]
+         - [sv_thetarel, null]
+         - [sv_phirel, null]
+         - [sv_p, null]
+         - [sv_prel, null]
+         - [sv_nTracks, null]
+         - [sv_mass, null]
+         - [sv_dxy, null]
+         - [sv_dxyz, null]
+         - [sv_chi2, null]
+         - [sv_chi2Normalized, null]
+         - [sv_cosPointing, null]
    sv_mask:
       length: 1
       pad_mode: constant
       vars:
-         - [recojet_sv_mask, null]
+         - [sv_mask, null]
 
 labels:
    type: simple
