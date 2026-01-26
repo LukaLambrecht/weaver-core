@@ -141,7 +141,8 @@ def plot_roc_multi(events,
                 # calculate signal and background efficiency
                 thresholds = np.concatenate((
                     np.linspace(np.amin(this_scores), np.amax(this_scores)*0.9, num=100),
-                    np.linspace(np.amax(this_scores)*0.9, np.amax(this_scores), num=500),
+                    np.linspace(np.amax(this_scores)*0.9, np.amax(this_scores)*0.98, num=300),
+                    np.linspace(np.amax(this_scores)*0.98, np.amax(this_scores), num=300)
                 ))
                 efficiency_sig = np.zeros(len(thresholds))
                 efficiency_bkg = np.zeros(len(thresholds))
