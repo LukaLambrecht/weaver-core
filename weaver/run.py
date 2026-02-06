@@ -39,11 +39,11 @@ if __name__=='__main__':
     model_config = os.path.abspath('configs/model_config_pnettagger.py')
     #model_config = os.path.abspath('configs/model_config_part.py')
     # sample list for training data
-    sample_config_train = os.path.abspath(f'configs/samplelists/{loc}/samples_training_withsv2perevent_biggertestingset.yaml')
+    sample_config_train = os.path.abspath(f'configs/samplelists/{loc}/samples_training_withsvloose5_biggertestingset.yaml')
     # sample list for testing data
-    sample_config_test = os.path.abspath(f'configs/samplelists/{loc}/samples_testing_withsv2perevent_biggertestingset.yaml')
+    sample_config_test = os.path.abspath(f'configs/samplelists/{loc}/samples_testing_withsvloose5_biggertestingset.yaml')
     # output dir
-    outputdir = os.path.join(thisdir, 'output_temp_withsv2perevent_3')
+    outputdir = os.path.join(thisdir, 'output_temp_withsvloose5_3')
     # network settings
     num_epochs = 50
     steps_per_epoch = 300

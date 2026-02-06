@@ -1,3 +1,6 @@
+# Simple utility script to export a given model to onnx.
+
+
 import os
 import sys
 
