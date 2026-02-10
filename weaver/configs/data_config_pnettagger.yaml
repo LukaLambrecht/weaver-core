@@ -71,6 +71,12 @@ inputs:
          - [pfcand_nTrackHits_VDET, null]
          - [pfcand_nTrackHits_ITC, null]
          - [pfcand_nTrackHits_TPC, null]
+         - [pfcand_dEdx_pads_type, null]
+         - [pfcand_dEdx_pads_value, null]
+         - [pfcand_dEdx_pads_error, null]
+         - [pfcand_dEdx_wires_type, null]
+         - [pfcand_dEdx_wires_value, null]
+         - [pfcand_dEdx_wires_error, null]
    pf_mask:
       length: 128
       pad_mode: constant
