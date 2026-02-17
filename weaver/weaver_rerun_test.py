@@ -11,7 +11,7 @@ if __name__=='__main__':
     modeldir = sys.argv[1]
 
     # hard-coded settings (maybe add as argument later)
-    use_onnx = True
+    use_onnx = False
 
     # find all required files
     samples = os.path.join(modeldir, 'sample_config_test.yaml')
