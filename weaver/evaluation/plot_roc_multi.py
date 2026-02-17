@@ -169,13 +169,15 @@ def plot_roc_multi(events,
 
     # ad-hoc addition (maybe clean up later):
     # add reference
-    ax.scatter(0.00216, 0.1957, s=35, color=cmap(0), edgecolors='red', label='b vs. c (ALEPH reference)')
-    ax.scatter(0.00043, 0.1957, s=35, color=cmap(1), edgecolors='red', label='b vs. udsg (ALEPH reference)')
+    ax.scatter(0.00216, 0.1957, s=35, color=cmap(0), edgecolors='red', label='$b$-jets vs. $c$-jets (ALEPH)')
+    ax.scatter(0.00043, 0.1957, s=35, color=cmap(1), edgecolors='red', label='$b$-jets vs. $uds$-jets (ALEPH)')
 
     # other plot settings
-    ax.set_xlabel('Background pass-through', fontsize=12)
-    ax.set_ylabel('Signal efficiency', fontsize=12)
+    ax.set_xlabel('Background pass-through', fontsize=15)
+    ax.set_ylabel('Signal efficiency', fontsize=15)
+    ax.tick_params(axis='both', labelsize=12)
     ax.grid(which='both')
+    ax.set_ylim((-0.05, 1.1))
     leg = ax.legend()
 
     # save figure

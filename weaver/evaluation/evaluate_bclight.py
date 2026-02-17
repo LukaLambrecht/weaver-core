@@ -29,13 +29,13 @@ if __name__=='__main__':
             'label_branch': 'recojet_isB',
             'score_branch': 'score_recojet_isB',
             'color': 'red',
-            'label': r'b'
+            'label': r'$b$-jets'
         },
         'c': {
             'label_branch': 'recojet_isC',
             'score_branch': 'score_recojet_isC',
             'color': 'blue',
-            'label': r'c'
+            'label': r'$c$-jets'
         },
     }
     background_categories = {
@@ -43,7 +43,7 @@ if __name__=='__main__':
             'label_branch': 'recojet_isUDSG',
             'score_branch': 'score_recojet_isUDSG',
             'color': 'green',
-            'label': r'udsg'
+            'label': r'$uds$-jets'
         }
     }
     all_categories = {**signal_categories, **background_categories}
