@@ -289,6 +289,7 @@ class PairEmbed(nn.Module):
             if pairwise_lv_dim > 0:
                 input_dim = pairwise_lv_dim
                 module_list = [nn.BatchNorm1d(input_dim)] if normalize_input else []
+                module_list = []
                 for dim in dims:
                     module_list.extend([
                         nn.Conv1d(input_dim, dim, 1),
@@ -321,10 +322,21 @@ class PairEmbed(nn.Module):
         # uu: (batch, v_dim, seq_len, seq_len)
         assert (x is not None or uu is not None)
         with torch.no_grad():
-            if x is not None:
-                batch_size, _, seq_len = x.size()
-            else:
-                batch_size, _, seq_len, _ = uu.size()
+
+            # extract dimensions from input tensors
+            if x is not None: batch_size, _, seq_len = x.size()
+            else: batch_size, _, seq_len, _ = uu.size()
+            
+            #print()
+            #print(batch_size)
+            #print(seq_len)
+            #print(x)
+            #if x is not None: print(torch.isnan(x).any())
+            #print(uu)
+            #if uu is not None: print(torch.isnan(uu).any())
+
+            # case of symmetric and not onnx
+            # (what does this mean?)
             if self.is_symmetric and not self.for_onnx:
                 i, j = torch.tril_indices(seq_len, seq_len, offset=-1 if self.remove_self_pair else 0,
                                           device=(x if x is not None else uu).device)
@@ -336,6 +348,8 @@ class PairEmbed(nn.Module):
                 if uu is not None:
                     # (batch, dim, seq_len*(seq_len+1)/2)
                     uu = uu[:, :, i, j]
+
+            # other cases
             else:
                 if x is not None:
                     x = self.pairwise_lv_fts(x.unsqueeze(-1), x.unsqueeze(-2))
@@ -345,23 +359,25 @@ class PairEmbed(nn.Module):
                     x = x.view(-1, self.pairwise_lv_dim, seq_len * seq_len)
                 if uu is not None:
                     uu = uu.view(-1, self.pairwise_input_dim, seq_len * seq_len)
-            if self.mode == 'concat':
-                if x is None:
-                    pair_fts = uu
-                elif uu is None:
-                    pair_fts = x
-                else:
-                    pair_fts = torch.cat((x, uu), dim=1)
 
+            # define pair_fts for mode concatenation if needed
+            if self.mode == 'concat':
+                if x is None: pair_fts = uu
+                elif uu is None: pair_fts = x
+                else: pair_fts = torch.cat((x, uu), dim=1)
+
+        #print(x)
+        #if x is not None: print(torch.isnan(x).any())
+        #print(uu)
+        #if uu is not None: print(torch.isnan(uu).any())
+
+        # make elements
         if self.mode == 'concat':
             elements = self.embed(pair_fts)  # (batch, embed_dim, num_elements)
         elif self.mode == 'sum':
-            if x is None:
-                elements = self.fts_embed(uu)
-            elif uu is None:
-                elements = self.embed(x)
-            else:
-                elements = self.embed(x) + self.fts_embed(uu)
+            if x is None: elements = self.fts_embed(uu)
+            elif uu is None: elements = self.embed(x)
+            else: elements = self.embed(x) + self.fts_embed(uu)
 
         if self.is_symmetric and not self.for_onnx:
             y = torch.zeros(batch_size, self.out_dim, seq_len, seq_len, dtype=elements.dtype, device=elements.device)
@@ -546,12 +562,19 @@ class ParticleTransformer(nn.Module):
             x, v, mask, uu = self.trimmer(x, v, mask, uu)
             padding_mask = ~mask.squeeze(1)  # (N, P)
 
-        with torch.cuda.amp.autocast(enabled=self.use_amp):
+        with torch.amp.autocast('cuda', enabled=self.use_amp):
             # input embedding
             x = self.embed(x).masked_fill(~mask.permute(2, 0, 1), 0)  # (P, N, C)
             attn_mask = None
             if (v is not None or uu is not None) and self.pair_embed is not None:
                 attn_mask = self.pair_embed(v, uu).view(-1, v.size(-1), v.size(-1))  # (N*num_heads, P, P)
+
+            #print(x)
+            #if x is not None: print(torch.isnan(x).any())
+            #print(padding_mask)
+            #if padding_mask is not None: print(torch.isnan(padding_mask).any())
+            #print(attn_mask)
+            #if attn_mask is not None: print(torch.isnan(attn_mask).any())
 
             # transform
             for block in self.blocks:
@@ -564,13 +587,11 @@ class ParticleTransformer(nn.Module):
 
             x_cls = self.norm(cls_tokens).squeeze(0)
 
-            # fc
-            if self.fc is None:
-                return x_cls
+            # fully connected layers
+            if self.fc is None: return x_cls
             output = self.fc(x_cls)
-            if self.for_inference:
-                output = torch.softmax(output, dim=1)
-            # print('output:\n', output)
+            if self.for_inference: output = torch.softmax(output, dim=1)
+
             return output
 
 
@@ -639,18 +660,37 @@ class ParticleTransformerTagger(nn.Module):
         # v: (N, 4, P) [px,py,pz,energy]
         # mask: (N, 1, P) -- real particle = 1, padded = 0
 
+        #print('--------------')
+        #print('Input tensors:')
+        #print(pf_x)
+        #print(pf_v)
+        #print(pf_mask)
+        #print(sv_x)
+        #print(sv_v)
+        #print(sv_mask)
+
         with torch.no_grad():
             pf_x, pf_v, pf_mask, _ = self.pf_trimmer(pf_x, pf_v, pf_mask)
             sv_x, sv_v, sv_mask, _ = self.sv_trimmer(sv_x, sv_v, sv_mask)
             v = torch.cat([pf_v, sv_v], dim=2)
             mask = torch.cat([pf_mask, sv_mask], dim=2)
 
-        with torch.cuda.amp.autocast(enabled=self.use_amp):
+        with torch.amp.autocast('cuda', enabled=self.use_amp):
             pf_x = self.pf_embed(pf_x)  # after embed: (seq_len, batch, embed_dim)
             sv_x = self.sv_embed(sv_x)
             x = torch.cat([pf_x, sv_x], dim=0)
 
-            return self.part(x, v, mask)
+            #print('Processed input tensors:')
+            #print(x)
+            #print(v)
+            #print(mask)
+
+            #print('NaN check:')
+            #print(torch.isnan(x).any())
+            #print(torch.isnan(v).any())
+            #print(torch.isnan(mask).any())
+
+            return self.part(x, v=v, mask=mask)
 
 
 class ParticleTransformerTaggerWithExtraPairFeatures(nn.Module):
