@@ -2,11 +2,34 @@
 
 import os
 import sys
+import json
 import argparse
 import numpy as np
 import matplotlib as mpl
 import matplotlib.pyplot as plt
 from sklearn.metrics import roc_auc_score
+
+
+def format_table_txt(table):
+    header = '{0: <30}'.format('Signal efficiency:')
+    for sig_eff in table['sig_effs']: header += '{0: <15}'.format(sig_eff)
+    length = len(header)
+    divider = '-'*length
+    lines = []
+    lines.append(divider)
+    for key, val in table.items():
+        if key=='sig_effs': continue
+        label = key.replace('$', '').replace('\\', '')
+        line = '{0: <30}'.format(label)
+        for el in val:
+            elstr = str(el)
+            if el > 0.01: elstr = '{:.3f}'.format(el)
+            else: elstr = '{:.3e}'.format(el)
+            line += '{0: <15}'.format(elstr)
+        lines.append(line)
+    lines.append(divider)
+    txt = '\n'.join([header] + lines)
+    return txt
 
 
 def plot_scores_multi(events,
@@ -100,10 +123,13 @@ def plot_roc_multi(events,
 
     # initialize figure
     fig, ax = plt.subplots()
-    #nlines = len(signal_categories)*len(background_categories)
     nlines = int(len(all_categories)*(len(all_categories)-1)/2)
     cmap = plt.get_cmap('cool', nlines)
     cidx = 0
+
+    # initialize a table
+    table = {}
+    table['sig_effs'] = [0.2, 0.4, 0.6, 0.8]
 
     # loop over pairs of categories
     #for signal_category_name, signal_category_settings in signal_categories.items():
@@ -162,6 +188,16 @@ def plot_roc_multi(events,
                   color=cmap(cidx), linewidth=3, label=label)
                 cidx += 1
 
+                # make a table entry
+                table_entry = []
+                for sig_eff in table['sig_effs']:
+                    idx = np.nonzero(efficiency_sig[::-1] > sig_eff)[0][0]
+                    bkg_eff = efficiency_bkg[::-1][idx]
+                    table_entry.append(bkg_eff)
+                label = signal_category_settings['label'] + ' vs. '
+                label += background_category_settings['label']
+                table[label] = table_entry
+
     # add random guessing line
     dummy_efficiency = np.linspace(0, 1, num=101)
     ax.plot(dummy_efficiency, dummy_efficiency,
@@ -194,3 +230,16 @@ def plot_roc_multi(events,
     fig.savefig(figname)
     print(f'Saved figure {figname}.')
     plt.close()
+
+    # print table
+    print('Results table:')
+    table_txt = format_table_txt(table)
+    print(table_txt)
+
+    # store table to json and file
+    filename = os.path.join(outputdir, 'table.json')
+    with open(filename, 'w') as f:
+        json.dump(table, f, indent=2)
+    filename = os.path.join(outputdir, 'table.txt')
+    with open(filename, 'w') as f:
+        f.write(table_txt)
