@@ -3,6 +3,8 @@
 
 import os
 import sys
+import numpy as np
+from fnmatch import fnmatch
 
 
 if __name__=='__main__':
@@ -11,14 +13,19 @@ if __name__=='__main__':
     modeldir = sys.argv[1]
 
     # hard-coded settings (maybe add as argument later)
-    use_onnx = False
+    which_model = 'latest' # choose from "best", "onnx" or "latest"
 
     # find all required files
     samples = os.path.join(modeldir, 'sample_config_test.yaml')
     dataconfig = os.path.join(modeldir, 'data_config.yaml')
     modelconfig = os.path.join(modeldir, 'model_config.py')
-    if use_onnx: modelstate = os.path.join(modeldir, 'model.onnx')
-    else: modelstate = os.path.join(modeldir, 'network_best_epoch_state.pt')
+    if which_model=='onnx': modelstate = os.path.join(modeldir, 'model.onnx')
+    elif which_model=='best': modelstate = os.path.join(modeldir, 'network_best_epoch_state.pt')
+    elif which_model=='latest':
+        candidates = [f for f in os.listdir(modeldir) if fnmatch(f, 'network_epoch-*_state.pt')]
+        epoch_numbers = [int(f.split('epoch-')[-1].replace('_state.pt', '')) for f in candidates]
+        idx = np.argmax(epoch_numbers)
+        modelstate = os.path.join(modeldir, candidates[idx])
     tocheck = [samples, dataconfig, modelconfig, modelstate]
     for f in tocheck:
         if f is None: continue
