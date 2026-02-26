@@ -65,6 +65,22 @@ inputs:
          - [pfcand_nTrackHits_VDET, null]
          - [pfcand_nTrackHits_ITC, null]
          - [pfcand_nTrackHits_TPC, null]
+         - [pfcand_dEdx_pads_type, null]
+         - [pfcand_dEdx_pads_value, null]
+         - [pfcand_dEdx_pads_error, null]
+         - [pfcand_dEdx_wires_type, null]
+         - [pfcand_dEdx_wires_value, null]
+         - [pfcand_dEdx_wires_error, null]
+         - [pfcand_PID_pval_pads_ele, null]
+         - [pfcand_PID_pval_pads_mu, null]
+         - [pfcand_PID_pval_pads_pi, null]
+         - [pfcand_PID_pval_pads_kaon, null]
+         - [pfcand_PID_pval_pads_proton, null]
+         - [pfcand_PID_pval_wires_ele, null]
+         - [pfcand_PID_pval_wires_mu, null]
+         - [pfcand_PID_pval_wires_pi, null]
+         - [pfcand_PID_pval_wires_kaon, null]
+         - [pfcand_PID_pval_wires_proton, null]
    pf_vectors:
       length: 128
       pad_mode: wrap
