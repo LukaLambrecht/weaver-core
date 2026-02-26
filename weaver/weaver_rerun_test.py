@@ -13,7 +13,7 @@ if __name__=='__main__':
     modeldir = sys.argv[1]
 
     # hard-coded settings (maybe add as argument later)
-    which_model = 'latest' # choose from "best", "onnx" or "latest"
+    which_model = 'best' # choose from "best", "onnx" or "latest"
 
     # find all required files
     samples = os.path.join(modeldir, 'sample_config_test.yaml')
