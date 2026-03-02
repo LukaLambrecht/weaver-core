@@ -6,6 +6,12 @@ import sys
 import numpy as np
 from fnmatch import fnmatch
 
+thisdir = os.path.abspath(os.path.dirname(__file__))
+weavercoredir = os.path.abspath(os.path.join(thisdir, '../'))
+sys.path.append(weavercoredir)
+import weaver.utils.jobsubmission.condortools as ct
+import weaver.utils.jobsubmission.slurmtools as st
+
 
 if __name__=='__main__':
 
@@ -14,6 +20,8 @@ if __name__=='__main__':
 
     # hard-coded settings (maybe add as argument later)
     which_model = 'best' # choose from "best", "onnx" or "latest"
+    runmode = 'slurm'
+    gpus= '0'
 
     # find all required files
     samples = os.path.join(modeldir, 'sample_config_test.yaml')
@@ -49,6 +57,42 @@ if __name__=='__main__':
     cmd += f' --batch-size 512'
     cmd += f' --predict-output {outputfile}'
 
-    # run command
-    print(cmd)
-    os.system(cmd)
+    # settings based on user
+    user = os.getenv('USER')
+    miniforge = None
+    if user=='llambre1.brown':
+        miniforge = '/blue/avery/llambre1.brown/miniforge3/bin/activate'
+    if user=='llambrec':
+        miniforge = '/eos/user/l/llambrec/miniforge3/bin/activate'
+    if user=='tgillin':
+        miniforge = '/users/tgillin/miniconda3/etc/profile.d/conda.sh'
+
+    # run or submit commands
+    if runmode == 'local':
+        print(cmd)
+        os.system(cmd)
+    elif runmode=='condor':
+        conda_activate = f'source {miniforge}'
+        conda_env = 'weaver'
+        ct.submitCommandAsCondorJob('cjob_weaver', cmd,
+          jobflavour='workday', conda_activate=conda_activate, conda_env=conda_env)
+    elif runmode=='slurm':
+        slurmscript = 'sjob_weaver.sh'
+        # remove old slurm script if it exists
+        if os.path.exists(slurmscript):
+            os.remove(slurmscript)
+        env_cmds = ([
+          f'source {miniforge}',
+          'conda activate weaver',
+          f'cd {thisdir}'
+        ])
+        job_name = os.path.splitext(slurmscript)[0]
+        slurm_options = {
+          'job_name': job_name,
+          'env_cmds': env_cmds,
+          'memory': '16G',
+          'time': '15:00:00'
+        }
+        if gpus!='""':
+            slurm_options['gpus'] = '1'
+        st.submitCommandAsSlurmJob(cmd, slurmscript, **slurm_options)

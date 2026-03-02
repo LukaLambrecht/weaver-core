@@ -30,20 +30,23 @@ if __name__=='__main__':
     # common settings
     weaverdir = os.path.join(weavercoredir, 'weaver')
     # data config
-    #data_config = os.path.abspath('configs/data_config_pnet.yaml')
-    data_config = os.path.abspath('configs/data_config_pnettagger.yaml')
-    #data_config = os.path.abspath('configs/data_config_part.yaml')
-    #data_config = os.path.abspath('configs/data_config_part_standardized.yaml')
+    #data_config = os.path.abspath('configs/data_config_pnet_withstrange.yaml')
+    #data_config = os.path.abspath('configs/data_config_pnettagger_withstrange_withdedx.yaml')
+    #data_config = os.path.abspath('configs/data_config_part_withstrange.yaml')
+    #data_config = os.path.abspath('configs/data_config_parttagger_withstrange_nodedx_noptype.yaml')
+    data_config = os.path.abspath('configs/data_config_parttaggerwithv0_withdedx_masked.yaml')
     # model config
     #model_config = os.path.abspath('configs/model_config_pnet.py')
-    model_config = os.path.abspath('configs/model_config_pnettagger.py')
+    #model_config = os.path.abspath('configs/model_config_pnettagger.py')
     #model_config = os.path.abspath('configs/model_config_part.py')
+    #model_config = os.path.abspath('configs/model_config_parttagger.py')
+    model_config = os.path.abspath('configs/model_config_parttaggerwithv0.py')
     # sample list for training data
-    sample_config_train = os.path.abspath(f'configs/samplelists/{loc}/samples_training_withdedx.yaml')
+    sample_config_train = os.path.abspath(f'configs/samplelists/{loc}/samples_training_withnewks.yaml')
     # sample list for testing data
-    sample_config_test = os.path.abspath(f'configs/samplelists/{loc}/samples_testing_withdedx.yaml')
+    sample_config_test = os.path.abspath(f'configs/samplelists/{loc}/samples_testing_withnewks.yaml')
     # output dir
-    outputdir = os.path.join(thisdir, 'output_temp_withdedx_3')
+    outputdir = os.path.join(thisdir, 'output_20260228_withks_withdedx_masked_3')
     # network settings
     num_epochs = 50
     steps_per_epoch = 300
@@ -92,7 +95,7 @@ if __name__=='__main__':
     cmd += f' --data-test {this_sample_config_test}'
     cmd += f' --predict-output {test_output}'
     # data loading options
-    cmd += ' --num-workers 0'
+    cmd += ' --num-workers 6'
     #cmd += ' --in-memory --fetch-step 1'
     cmd += ' --copy-inputs'
     # compute options
