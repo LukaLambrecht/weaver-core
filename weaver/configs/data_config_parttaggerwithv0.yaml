@@ -36,13 +36,13 @@ preprocess:
 
 inputs:
    pf_points:
-      length: 128
+      length: 64
       pad_mode: wrap
       vars: 
          - [pfcand_thetarel, null]
          - [pfcand_phirel, null]
    pf_features:
-      length: 128
+      length: 64
       pad_mode: wrap
       vars: 
          - [pfcand_pt_log, null]
@@ -91,7 +91,7 @@ inputs:
          - [pfcand_PID_pval_wires_kaon, null]
          - [pfcand_PID_pval_wires_proton, null]
    pf_vectors:
-      length: 128
+      length: 64
       pad_mode: wrap
       vars: 
          - [pfcand_px, null]
@@ -99,7 +99,7 @@ inputs:
          - [pfcand_pz, null]
          - [pfcand_e, null]
    pf_mask:
-      length: 128
+      length: 64
       pad_mode: constant
       vars: 
          - [pfcand_mask, null]
@@ -144,13 +144,13 @@ inputs:
          - [sv_mask, null]
 
    v0_points:
-      length: 5
+      length: 64
       pad_mode: constant
       vars:
          - [v0cand_thetarel, null]
          - [v0cand_phirel, null]
    v0_features:
-      length: 5
+      length: 64
       pad_mode: constant
       vars:
          - [v0cand_xrel, null]
@@ -169,7 +169,7 @@ inputs:
          - [v0cand_chi2Normalized, null]
          - [v0cand_cosPointing, null]
    v0_vectors:
-      length: 5
+      length: 64
       pad_mode: constant
       vars:
          - [v0cand_px_proxy, null]
@@ -177,7 +177,7 @@ inputs:
          - [v0cand_pz_proxy, null]
          - [v0cand_e_proxy, null]
    v0_mask:
-      length: 5
+      length: 64
       pad_mode: constant
       vars:
          - [v0cand_mask, null]
