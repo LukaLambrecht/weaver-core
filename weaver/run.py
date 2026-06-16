@@ -30,25 +30,19 @@ if __name__=='__main__':
     # common settings
     weaverdir = os.path.join(weavercoredir, 'weaver')
     # data config
-    #data_config = os.path.abspath('configs/data_config_pnet_withstrange.yaml')
-    #data_config = os.path.abspath('configs/data_config_pnettagger_withstrange_withdedx.yaml')
-    #data_config = os.path.abspath('configs/data_config_part_withstrange.yaml')
-    #data_config = os.path.abspath('configs/data_config_parttagger_withstrange_nodedx_noptype.yaml')
-    data_config = os.path.abspath('configs/data_config_parttaggerwithv0_withdedx_masked.yaml')
+    data_config = os.path.abspath('configs/configs_part/standardized/data_config_parttagger_withstrange_withdedx_masked.yaml')
+    #data_config = os.path.abspath('configs/configs_parttaggerwithv0/standardized/data_config_parttaggerwithv0_extv0_withdedx_masked.yaml')
     # model config
-    #model_config = os.path.abspath('configs/model_config_pnet.py')
-    #model_config = os.path.abspath('configs/model_config_pnettagger.py')
-    #model_config = os.path.abspath('configs/model_config_part.py')
-    #model_config = os.path.abspath('configs/model_config_parttagger.py')
-    model_config = os.path.abspath('configs/model_config_parttaggerwithv0.py')
+    model_config = os.path.abspath('configs/configs_part/model_config_parttagger.py')
+    #model_config = os.path.abspath('configs/configs_parttaggerwithv0/model_config_parttaggerwithv0.py')
     # sample list for training data
     sample_config_train = os.path.abspath(f'configs/samplelists/{loc}/samples_training_withnewks.yaml')
     # sample list for testing data
     sample_config_test = os.path.abspath(f'configs/samplelists/{loc}/samples_testing_withnewks.yaml')
     # output dir
-    outputdir = os.path.join(thisdir, 'output_20260228_withks_withdedx_masked_3')
+    outputdir = os.path.join(thisdir, 'output_20260305_noks_withdedx_masked_standardized')
     # network settings
-    num_epochs = 50
+    num_epochs = 30
     steps_per_epoch = 300
     batch_size = 512
     # runmode and job settings

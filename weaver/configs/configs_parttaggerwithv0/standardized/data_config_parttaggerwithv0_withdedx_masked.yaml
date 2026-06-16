@@ -1,0 +1,339 @@
+# Data configuration for jet classification with ParticleTransformer.
+
+selection:
+  ( ( recojet_pt > 10. )
+  & ( np.abs(recojet_eta) < 0.9 ) )
+
+test_time_selection:
+  ( ( recojet_pt > 10. )
+  & ( np.abs(recojet_eta) < 0.9 ) )
+
+new_variables:
+   # masks
+   pfcand_mask: ak.ones_like(pfcand_pt)
+   sv_mask: ak.ones_like(sv_chi2Normalized)
+   v0cand_mask: ak.ones_like(v0cand_chi2Normalized)
+   # pfcand input features
+   pfcand_pt_log: np.log(pfcand_pt)
+   pfcand_e_log: np.log(pfcand_e)
+   pfcand_drrel: np.hypot(pfcand_thetarel, pfcand_phirel)
+   # sv input features
+   sv_pt_proxy: np.multiply(sv_p, np.sin(sv_thetarel))
+   sv_px_proxy: np.multiply(sv_pt_proxy, np.cos(sv_phirel))
+   sv_py_proxy: np.multiply(sv_pt_proxy, np.sin(sv_phirel))
+   sv_pz_proxy: np.multiply(sv_p, np.cos(sv_thetarel))
+   sv_e_proxy: np.sqrt(np.square(sv_px_proxy) + np.square(sv_py_proxy) + np.square(sv_pz_proxy) + np.square(sv_mass))
+   # v0 input features
+   v0cand_pt_proxy: np.multiply(v0cand_p, np.sin(v0cand_thetarel))
+   v0cand_px_proxy: np.multiply(v0cand_pt_proxy, np.cos(v0cand_phirel))
+   v0cand_py_proxy: np.multiply(v0cand_pt_proxy, np.sin(v0cand_phirel))
+   v0cand_pz_proxy: np.multiply(v0cand_p, np.cos(v0cand_thetarel))
+   v0cand_e_proxy: np.sqrt(np.square(v0cand_px_proxy) + np.square(v0cand_py_proxy) + np.square(v0cand_pz_proxy) + np.square(v0cand_mass))
+   # dEdx input features
+   pfcand_p: np.sqrt(np.square(pfcand_pt) + np.square(pfcand_pz))
+   pfcand_dedx_mask: ((pfcand_p>1) & (np.abs(pfcand_charge)>0) & (pfcand_dEdx_wires_value>0.8) & (pfcand_isChargedHad>0.5))
+   pfcand_dEdx_wires_value_masked: np.where(pfcand_dedx_mask, pfcand_dEdx_wires_value, 0)
+   pfcand_PID_pval_wires_kaon_masked: np.where(pfcand_dedx_mask, pfcand_PID_pval_wires_kaon, 0)
+   pfcand_PID_pval_wires_pi_masked: np.where(pfcand_dedx_mask, pfcand_PID_pval_wires_pi, 0)
+
+preprocess:
+  method: manual
+  data_fraction: 0.5
+
+inputs:
+  pf_points:
+    length: 128
+    pad_mode: wrap
+    vars:
+    - - pfcand_thetarel
+      - 0.2931332588195801
+      - 1.7881014226803118
+    - - pfcand_phirel
+      - 0.00459421519190073
+      - 0.472526175324828
+  pf_features:
+    length: 128
+    pad_mode: wrap
+    vars:
+    - - pfcand_pt_log
+      - 0.0051751695573329926
+      - 0.82362612729575
+    - - pfcand_e_log
+      - 0.16759607195854187
+      - 0.8487614108866758
+    - - pfcand_ptrel_log
+      - -1.55278480052948
+      - 1.9239769510138864
+    - - pfcand_erel_log
+      - -1.5808197855949402
+      - 1.939731759720912
+    - - pfcand_drrel
+      - 1.6986541152000427
+      - 1.0113174837163224
+    - - pfcand_thetarel
+      - 0.2931332588195801
+      - 1.7881014226803118
+    - - pfcand_phirel
+      - 0.00459421519190073
+      - 0.472526175324828
+    - - pfcand_charge
+    - - pfcand_dxy
+      - 5.618050090561155e-05
+      - 25.508721840513527
+    - - pfcand_dz
+      - 6.557063898071647e-06
+      - 21.396325746418963
+    - - pfcand_Sip2dVal
+      - 0.0013831102987751365
+      - 15.446146776535722
+    - - pfcand_Sip2dSig
+      - 0.18376412242650986
+      - 0.3050613633000897
+    - - pfcand_Sip3dVal
+      - 0.002039919956587255
+      - 8.876664889877988
+    - - pfcand_Sip3dSig
+      - 0.2155834436416626
+      - 0.36418162811984556
+    - - pfcand_JetDistVal
+      - 2.6595355393510545e-06
+      - 25.703701965322306
+    - - pfcand_JetDistSig
+      - 0.00020036754722241312
+      - 0.8686351499073136
+    - - pfcand_linearSignedIP3D
+      - 0.0
+      - 34.73276034505168
+    - - pfcand_linearSignedIP3DSig
+      - 0.0
+      - 0.5568258868300423
+    - - pfcand_transverseJetDistance
+      - 0.0005974730011075735
+      - 23.308498000207376
+    - - pfcand_longitudinalJetDistance
+      - 0.24508075416088104
+      - 1.262796550284757
+    - - pfcand_isChargedHad
+    - - pfcand_isNeutralHad
+    - - pfcand_isGamma
+    - - pfcand_isEl
+    - - pfcand_isMu
+    - - pfcand_trackChi2Normalized
+      - 0.5
+      - 0.6666666666666666
+    - - pfcand_nTrackHits_VDET
+      - 0.0
+      - 0.5
+    - - pfcand_nTrackHits_ITC
+      - 0.0
+      - 0.14285714285714285
+    - - pfcand_nTrackHits_TPC
+      - 6.0
+      - 0.07142857142857142
+    - - pfcand_dEdx_wires_value_masked
+      - 1.0777769088745117
+      - 4.321436335555713
+    - - pfcand_PID_pval_wires_pi_masked
+      - -1.1698480761879182e-07
+      - 1.3777228788582014
+    - - pfcand_PID_pval_wires_kaon_masked
+      - -1.2815653638065899e-28
+      - 4.081120797516195
+  pf_vectors:
+    length: 128
+    pad_mode: wrap
+    vars:
+    - - pfcand_px
+      - null
+    - - pfcand_py
+      - null
+    - - pfcand_pz
+      - null
+    - - pfcand_e
+      - null
+  pf_mask:
+    length: 128
+    pad_mode: constant
+    vars:
+    - - pfcand_mask
+      - null
+  sv_points:
+    length: 5
+    pad_mode: constant
+    vars:
+    - - sv_thetarel
+      - -0.005229278234764934
+      - 0.940725652162949
+    - - sv_phirel
+      - 0.0005756714381277561
+      - 3.9313280105384627
+  sv_features:
+    length: 5
+    pad_mode: constant
+    vars:
+    - - sv_xrel
+      - 0.0006751628243364394
+      - 0.7842159515069975
+    - - sv_yrel
+      - -0.0026792974676936865
+      - 0.7464556792004816
+    - - sv_zrel
+      - -0.0008525997400283813
+      - 0.6203036861930692
+    - - sv_thetarel
+      - -0.005229278234764934
+      - 0.940725652162949
+    - - sv_phirel
+      - 0.0005756714381277561
+      - 3.9313280105384627
+    - - sv_p
+      - 5.924427270889282
+      - 0.136432796751524
+    - - sv_prel
+      - 0.14617490768432617
+      - 5.437699907120475
+    - - sv_nTracks
+      - 2.0
+      - 1.0
+    - - sv_mass
+      - 0.6007387936115265
+      - 1.3306241939832055
+    - - sv_correctedMass
+      - 1.8996254205703735
+      - 0.37687644336068765
+    - - sv_dxy
+      - 0.5906868875026703
+      - 0.0656274050858596
+    - - sv_dxyz
+      - 0.7192917466163635
+      - 0.030402864545293007
+    - - sv_chi2
+      - 0.9829612076282501
+      - 0.24030260274194715
+    - - sv_chi2Normalized
+      - 0.6414092183113098
+      - 0.4255586026109568
+    - - sv_cosPointing
+      - 0.9907928705215454
+      - 7.506192473137472
+  sv_vectors:
+    length: 5
+    pad_mode: constant
+    vars:
+    - - sv_px_proxy
+      - null
+    - - sv_py_proxy
+      - null
+    - - sv_pz_proxy
+      - null
+    - - sv_e_proxy
+      - null
+  sv_mask:
+    length: 5
+    pad_mode: constant
+    vars:
+    - - sv_mask
+      - null
+  v0_points:
+    length: 5
+    pad_mode: constant
+    vars:
+    - - v0cand_thetarel
+      - 0.00027715033502317965
+      - 2.593244876615371
+    - - v0cand_phirel
+      - 0.00016672504716552794
+      - 3.5160011846332537
+  v0_features:
+    length: 5
+    pad_mode: constant
+    vars:
+    - - v0cand_xrel
+      - 0.01379393506795168
+      - 0.09171645697193849
+    - - v0cand_yrel
+      - -0.027393312193453312
+      - 0.08846494971548138
+    - - v0cand_zrel
+      - -0.01733112335205078
+      - 0.08048283486884067
+    - - v0cand_thetarel
+      - 0.00027715033502317965
+      - 2.593244876615371
+    - - v0cand_phirel
+      - 0.00016672504716552794
+      - 3.5160011846332537
+    - - v0cand_p
+      - 3.2187161445617676
+      - 0.1805496283073722
+    - - v0cand_prel
+      - 0.07999442890286446
+      - 7.384130227629212
+    - - v0cand_nTracks
+      - 2.0
+      - 1.0
+    - - v0cand_mass
+      - 1.1009401082992554
+      - 1.5834054824140344
+    - - v0cand_correctedMass
+      - 0.5459390878677368
+      - 2.1501312335958005
+    - - v0cand_dxy
+      - 10.201047897338867
+      - 0.04378563990891108
+    - - v0cand_dxyz
+      - 16.34112548828125
+      - 0.020328776392349784
+    - - v0cand_chi2
+      - 0.15899558365345
+      - 0.5215927537150069
+    - - v0cand_chi2Normalized
+      - 0.15899558365345
+      - 0.5215927537150069
+    - - v0cand_cosPointing
+      - 0.9998842775821686
+      - 2032.7395650330163
+  v0_vectors:
+    length: 5
+    pad_mode: constant
+    vars:
+    - - v0cand_px_proxy
+      - null
+    - - v0cand_py_proxy
+      - null
+    - - v0cand_pz_proxy
+      - null
+    - - v0cand_e_proxy
+      - null
+  v0_mask:
+    length: 5
+    pad_mode: constant
+    vars:
+    - - v0cand_mask
+      - null
+
+labels:
+   type: simple
+   value: [recojet_isB, recojet_isC, recojet_isS, recojet_isUDG]
+
+observers:
+   - recojet_pt
+   - recojet_eta
+   - recojet_theta
+   - recojet_phi
+   - recojet_e
+   - recojet_mass
+   - nconst
+
+weights:
+   use_precomputed_weights: false
+   reweight_basewgt: np.ones(len(recojet_pt))
+   reweight_method: flat
+   reweight_threshold: 0
+   reweight_load_fraction: 1.
+   reweight_vars:
+      recojet_pt: [0., 30000.]
+      recojet_e: [0., 30000.]
+   reweight_discard_under_overflow: false
+   reweight_classes: [recojet_isB, recojet_isC, recojet_isS, recojet_isUDG]
+   class_weights: [1, 1, 1, 1]
