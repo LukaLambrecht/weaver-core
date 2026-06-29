@@ -77,7 +77,7 @@ def initJobScript(name,
 
 def makeJobDescription(name, exe, argstring=None, 
                        stdout=None, stderr=None, log=None,
-                       cpus=1, mem=1024, disk=10240, 
+                       cpus=1, gpus=None, mem=1024, disk=10240, 
                        proxy=None, jobflavour=None):
     ### create a single job description txt file
     # note: exe can for example be a runnable bash script
@@ -99,6 +99,7 @@ def makeJobDescription(name, exe, argstring=None,
         f.write('error = {}\n'.format(stderr))
         f.write('log = {}\n\n'.format(log))
         f.write('request_cpus = {}\n'.format(cpus))
+        if gpus is not None: f.write('request_gpus = {}\n'.format(gpus))
         f.write('request_memory = {}\n'.format(mem))
         f.write('request_disk = {}\n'.format(disk))
         if proxy is not None: 
@@ -126,7 +127,7 @@ def submitCommandAsCondorJob(name, command, **kwargs):
     submitCommandsAsCondorJobs(name, [[command]], **kwargs)
 
 def submitCommandsAsCondorCluster(name, commands, stdout=None, stderr=None, log=None,
-                        cpus=1, mem=1024, disk=10240,
+                        cpus=1, gpus=None, mem=1024, disk=10240,
                         home=None,
                         proxy=None,
                         cmssw_version=None,
@@ -152,8 +153,8 @@ def submitCommandsAsCondorCluster(name, commands, stdout=None, stderr=None, log=
         script.write('\n')
     # then make the job description
     # first job:
-    makeJobDescription(name,shname,argstring=argstring,stdout=stdout,stderr=stderr,log=log,
-                       cpus=cpus,mem=mem,disk=disk,proxy=proxy,
+    makeJobDescription(name, shname, argstring=argstring, stdout=stdout, stderr=stderr, log=log,
+                       cpus=cpus, gpus=gpus, mem=mem, disk=disk, proxy=proxy,
                        jobflavour=jobflavour)
     # add other jobs:
     with open(jdname,'a') as script:
@@ -175,7 +176,7 @@ def submitCommandsAsCondorJob(name, commands, **kwargs):
     submitCommandsAsCondorJobs(name, [commands], **kwargs)
 
 def submitCommandsAsCondorJobs(name, commands, stdout=None, stderr=None, log=None,
-            cpus=1, mem=1024, disk=10240,
+            cpus=1, gpus=None, mem=1024, disk=10240,
             home=None,
             proxy=None,
             cmssw_version=None,
@@ -196,8 +197,8 @@ def submitCommandsAsCondorJobs(name, commands, stdout=None, stderr=None, log=Non
         with open(shname,'a') as script:
              for cmd in commandset: script.write(cmd+'\n')
         # then make the job description
-        makeJobDescription(name,shname,stdout=stdout,stderr=stderr,log=log,
-                            cpus=cpus,mem=mem,disk=disk,proxy=proxy,
+        makeJobDescription(name, shname, stdout=stdout, stderr=stderr, log=log,
+                            cpus=cpus, gpus=gpus, mem=mem, disk=disk, proxy=proxy,
                             jobflavour=jobflavour)
         # finally submit the job
         submitCondorJob(jdname)

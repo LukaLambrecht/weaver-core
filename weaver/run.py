@@ -29,26 +29,37 @@ if __name__=='__main__':
 
     # common settings
     weaverdir = os.path.join(weavercoredir, 'weaver')
+    
     # data config
-    data_config = os.path.abspath('configs/configs_part/standardized/data_config_parttagger_withstrange_withdedx_masked.yaml')
-    #data_config = os.path.abspath('configs/configs_parttaggerwithv0/standardized/data_config_parttaggerwithv0_extv0_withdedx_masked.yaml')
+    #data_config = os.path.abspath('configs/configs_part/standardized/data_config_parttagger_withstrange_withdedx_masked.yaml')
+    #data_config = os.path.abspath('configs/configs_parttaggerwithv0/standardized/data_config_parttaggerwithv0_withdedx_masked.yaml') # masked dEdx
+    data_config = os.path.abspath('configs/configs_parttaggerwithv0/standardized/data_config_parttaggerwithv0.yaml') # everything included
+    
     # model config
-    model_config = os.path.abspath('configs/configs_part/model_config_parttagger.py')
-    #model_config = os.path.abspath('configs/configs_parttaggerwithv0/model_config_parttaggerwithv0.py')
+    #model_config = os.path.abspath('configs/configs_part/model_config_parttagger.py')
+    model_config = os.path.abspath('configs/configs_parttaggerwithv0/model_config_parttaggerwithv0.py')
+    
     # sample list for training data
-    sample_config_train = os.path.abspath(f'configs/samplelists/{loc}/samples_training_withnewks.yaml')
+    sample_config_train = os.path.abspath(f'configs/samplelists/{loc}/samples_training.yaml')
+    
     # sample list for testing data
-    sample_config_test = os.path.abspath(f'configs/samplelists/{loc}/samples_testing_withnewks.yaml')
+    sample_config_test = os.path.abspath(f'configs/samplelists/{loc}/samples_testing.yaml')
+    
     # output dir
-    outputdir = os.path.join(thisdir, 'output_20260305_noks_withdedx_masked_standardized')
+    #output_base = thisdir
+    output_base = '/eos/user/l/llambrec/aleph-weaver-output'
+    outputdir = os.path.join(output_base, 'output_test_nepochs_180_nsteps_300')
+    
     # network settings
-    num_epochs = 30
+    num_epochs = 180
     steps_per_epoch = 300
     batch_size = 512
+    
     # runmode and job settings
     # (choose from 'local', 'condor', and 'slurm')
-    runmode = 'slurm'
+    runmode = 'condor'
     gpus= '0'
+    #gpus = None
 
     # check if all config files exist
     files_to_check = [data_config, model_config, sample_config_train, sample_config_test, miniforge]
@@ -99,11 +110,21 @@ if __name__=='__main__':
     if runmode == 'local':
         print(cmd)
         os.system(cmd)
+
     elif runmode=='condor':
-        conda_activate = f'source {miniforge}'
-        conda_env = 'weaver'
-        ct.submitCommandAsCondorJob('cjob_weaver', cmd,
-          jobflavour='workday', conda_activate=conda_activate, conda_env=conda_env)
+        condor_options = {
+            'conda_activate': f'source {miniforge}',
+            'conda_env': 'weaver',
+            'jobflavour': 'tomorrow',
+            'cpus': 4,
+            'mem': 16000,
+            'disk': 32000
+        }
+        if gpus is not None and gpus != '""':
+            condor_options['gpus'] = 1
+        tag = os.path.basename(outputdir)
+        ct.submitCommandAsCondorJob(f'cjob_weaver_{tag}', cmd, **condor_options)
+    
     elif runmode=='slurm':
         slurmscript = 'sjob_weaver.sh'
         # remove old slurm script if it exists
@@ -121,7 +142,7 @@ if __name__=='__main__':
           'memory': '16G',
           'time': '15:00:00'
         }
-        if gpus!='""':
+        if gpus is not None and gpus != '""':
             #slurm_options['partition'] = 'gpu'
             #slurm_options['gres'] = 'gpu:1'
             slurm_options['gpus'] = '1'
