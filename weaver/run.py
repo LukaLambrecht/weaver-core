@@ -33,8 +33,9 @@ if __name__=='__main__':
     # data config
     #data_config = os.path.abspath('configs/configs_part/standardized/data_config_parttagger_withstrange_withdedx_masked.yaml')
     #data_config = os.path.abspath('configs/configs_parttaggerwithv0/standardized/data_config_parttaggerwithv0_withdedx_masked.yaml') # masked dEdx
-    data_config = os.path.abspath('configs/configs_parttaggerwithv0/standardized/data_config_parttaggerwithv0.yaml') # everything included
-    
+    #data_config = os.path.abspath('configs/configs_parttaggerwithv0/standardized/data_config_parttaggerwithv0.yaml') # everything included
+    data_config = os.path.abspath('configs/configs_parttaggerwithv0/standardized/data_config_parttaggerwithv0_extrafeatures_test.yaml') # test new input features  
+
     # model config
     #model_config = os.path.abspath('configs/configs_part/model_config_parttagger.py')
     model_config = os.path.abspath('configs/configs_parttaggerwithv0/model_config_parttaggerwithv0.py')
@@ -48,7 +49,7 @@ if __name__=='__main__':
     # output dir
     #output_base = thisdir
     output_base = '/eos/user/l/llambrec/aleph-weaver-output'
-    outputdir = os.path.join(output_base, 'output_test_nepochs_180_nsteps_300')
+    outputdir = os.path.join(output_base, 'output_test_extrafeatures')
     
     # network settings
     num_epochs = 180
