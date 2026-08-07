@@ -12,7 +12,11 @@ sys.path.append(thisdir)
 from tools import read_file
 from plot_roc_multi import plot_scores_multi
 from plot_roc_multi import plot_roc_multi
-from plot_ternary import plot_ternary
+try:
+    from plot_ternary import plot_ternary
+    do_plot_ternary = True
+except:
+    do_plot_ternary = False
 
 
 if __name__=='__main__':

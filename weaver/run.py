@@ -31,10 +31,11 @@ if __name__=='__main__':
     weaverdir = os.path.join(weavercoredir, 'weaver')
     
     # data config
-    #data_config = os.path.abspath('configs/configs_part/standardized/data_config_parttagger_withstrange_withdedx_masked.yaml')
+    #data_config = os.path.abspath('configs/configs_part/standardized/data_config_parttagger_withstrange_withdedx_masked.yaml') # standard part without secondary vertices or V0 cands
+    data_config = os.path.abspath('configs/configs_parttaggerwithv0/standardized/data_config_parttaggerwithv0.yaml') # everything included
     #data_config = os.path.abspath('configs/configs_parttaggerwithv0/standardized/data_config_parttaggerwithv0_withdedx_masked.yaml') # masked dEdx
-    #data_config = os.path.abspath('configs/configs_parttaggerwithv0/standardized/data_config_parttaggerwithv0.yaml') # everything included
-    data_config = os.path.abspath('configs/configs_parttaggerwithv0/standardized/data_config_parttaggerwithv0_extrafeatures_test.yaml') # test new input features  
+    #data_config = os.path.abspath('configs/configs_parttaggerwithv0/standardized/data_config_parttaggerwithv0_extrafeatures_test.yaml') # test new input features
+    #data_config = os.path.abspath('configs/configs_parttaggerwithv0/standardized/data_config_parttaggerwithv0_withdedx_masked_extrafeatures_test.yaml') # test new input features with masked dEdx
 
     # model config
     #model_config = os.path.abspath('configs/configs_part/model_config_parttagger.py')
@@ -49,10 +50,10 @@ if __name__=='__main__':
     # output dir
     #output_base = thisdir
     output_base = '/eos/user/l/llambrec/aleph-weaver-output'
-    outputdir = os.path.join(output_base, 'output_test_extrafeatures')
+    outputdir = os.path.join(output_base, 'output_test_withksnew_nepochs_30_nsteps_300')
     
     # network settings
-    num_epochs = 180
+    num_epochs = 30
     steps_per_epoch = 300
     batch_size = 512
     
@@ -101,7 +102,7 @@ if __name__=='__main__':
     cmd += f' --data-test {this_sample_config_test}'
     cmd += f' --predict-output {test_output}'
     # data loading options
-    cmd += ' --num-workers 6'
+    cmd += ' --num-workers 4'
     #cmd += ' --in-memory --fetch-step 1'
     cmd += ' --copy-inputs'
     # compute options
@@ -118,7 +119,7 @@ if __name__=='__main__':
             'conda_env': 'weaver',
             'jobflavour': 'tomorrow',
             'cpus': 4,
-            'mem': 16000,
+            'mem': 32000,
             'disk': 32000
         }
         if gpus is not None and gpus != '""':
