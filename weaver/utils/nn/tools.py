@@ -50,7 +50,8 @@ def _flatten_preds(model_output, label=None, mask=None, label_axis=1):
 
 def train_classification(
         model, loss_func, opt, scheduler, train_loader, dev, epoch, steps_per_epoch=None, grad_scaler=None,
-        tb_helper=None):
+        tb_helper=None, metrics_output=None):
+    # note: if metrics_output (a dict) is provided, it is filled with the metrics of this epoch.
     model.train()
 
     data_config = train_loader.dataset.config
@@ -122,6 +123,14 @@ def train_classification(
     _logger.info('Processed %d entries in total (avg. speed %.1f entries/s)' % (entry_count, entry_count / time_diff))
     _logger.info('Train AvgLoss: %.5f, AvgAcc: %.5f' % (total_loss / num_batches, total_correct / count))
     _logger.info('Train class distribution: \n    %s', str(sorted(label_counter.items())))
+    if metrics_output is not None:
+        metrics_output.update({
+            'loss': total_loss / num_batches,
+            'accuracy': total_correct / count,
+            'num_entries': entry_count,
+            'time': time_diff,
+            'class_distribution': dict(sorted(label_counter.items())),
+        })
 
     if tb_helper:
         tb_helper.write_scalars([
@@ -140,7 +149,8 @@ def train_classification(
 
 def evaluate_classification(model, test_loader, dev, epoch, for_training=True, loss_func=None, steps_per_epoch=None,
                             eval_metrics=['roc_auc_score', 'roc_auc_score_matrix', 'confusion_matrix'],
-                            tb_helper=None):
+                            tb_helper=None, metrics_output=None):
+    # note: if metrics_output (a dict) is provided, it is filled with the metrics of this evaluation.
     model.eval()
 
     data_config = test_loader.dataset.config
@@ -227,6 +237,16 @@ def evaluate_classification(model, test_loader, dev, epoch, for_training=True, l
     metric_results = evaluate_metrics(labels[data_config.label_names[0]], scores, eval_metrics=eval_metrics)
     _logger.info('Evaluation metrics: \n%s', '\n'.join(
         ['    - %s: \n%s' % (k, str(v)) for k, v in metric_results.items()]))
+
+    if metrics_output is not None:
+        metrics_output.update({
+            'loss': total_loss / count,
+            'accuracy': total_correct / count,
+            'num_entries': entry_count,
+            'time': time_diff,
+            'class_distribution': dict(sorted(label_counter.items())),
+        })
+        metrics_output.update(metric_results)
 
     if for_training:
         return total_correct / count

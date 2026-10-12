@@ -26,6 +26,29 @@ from weaver.utils.dataset import SimpleIterDataset
 from weaver.utils.import_tools import import_module
 from weaver.utils.samplelisttools import read_sample_list
 
+
+def write_metrics(metrics, path):
+    """
+    Write training and validation metrics to a json file.
+    Input arguments:
+     - metrics: (nested) dict of metrics; numpy types are converted to builtin types.
+     - path: path to the output json file (overwritten if it already exists).
+    """
+    import json
+    def convert(obj):
+        if isinstance(obj, dict): return {str(k): convert(v) for k, v in obj.items()}
+        if isinstance(obj, (list, tuple)): return [convert(v) for v in obj]
+        if isinstance(obj, np.ndarray): return convert(obj.tolist())
+        if isinstance(obj, np.generic): return convert(obj.item())
+        # (NaN and inf are not valid in json)
+        if isinstance(obj, float) and not math.isfinite(obj): return None
+        return obj
+    dirname = os.path.dirname(path)
+    if dirname and not os.path.exists(dirname): os.makedirs(dirname)
+    # write to a temporary file first, to never leave a partially written file
+    with open(path + '.tmp', 'w') as f: json.dump(convert(metrics), f, indent=2)
+    os.replace(path + '.tmp', path)
+
 parser = argparse.ArgumentParser()
 parser.add_argument('--regression-mode', action='store_true', default=False,
                     help='run in regression mode if this flag is set; otherwise run in classification mode')
@@ -59,6 +82,10 @@ parser.add_argument('--fetch-by-files', action='store_true', default=False,
 parser.add_argument('--fetch-step', type=float, default=0.01,
                     help='fraction of events to load each time from every file (when ``--fetch-by-files`` is disabled); '
                          'Or: number of files to load each time (when ``--fetch-by-files`` is enabled). Shuffling & sampling is done within these events, so set a large enough value.')
+parser.add_argument('--fetch-step-val', type=float, default=None,
+                    help='same as ``--fetch-step`` but for the validation data; default: same value as ``--fetch-step``. '
+                         'The memory usage of the data loading is proportional to the fetch step, so a smaller value '
+                         'can be used to limit the memory usage of the validation data (without changing its content).')
 parser.add_argument('--in-memory', action='store_true', default=False,
                     help='load the whole dataset (and perform the preprocessing) only once and keep it in memory for the entire run')
 parser.add_argument('--train-val-split', type=float, default=0.8,
@@ -143,6 +170,9 @@ parser.add_argument('--io-test', action='store_true', default=False,
                     help='test throughput of the dataloader')
 parser.add_argument('--copy-inputs', action='store_true', default=False,
                     help='copy input files to the current dir (can help to speed up dataloading when running over remote files, e.g., from EOS)')
+parser.add_argument('--metrics-output', type=str, default=None,
+                    help='path to a json file to store the training and validation metrics of each epoch '
+                         '(updated after each epoch); default: `<model-prefix>_metrics.json`')
 parser.add_argument('--log', type=str, default='',
                     help='path to the log file; `{auto}` can be used as part of the path to auto-generate a name, based on the timestamp and network configuration')
 parser.add_argument('--print', action='store_true', default=False,
@@ -327,7 +357,7 @@ def train_load(args):
                                  load_range_and_fraction=(val_range, args.data_fraction),
                                  file_fraction=args.file_fraction,
                                  fetch_by_files=args.fetch_by_files,
-                                 fetch_step=args.fetch_step,
+                                 fetch_step=args.fetch_step if args.fetch_step_val is None else args.fetch_step_val,
                                  infinity_mode=args.steps_per_epoch_val is not None,
                                  in_memory=args.in_memory,
                                  name=name)
@@ -891,14 +921,25 @@ def _main(args):
         # training loop
         best_valid_metric = np.inf if args.regression_mode else 0
         grad_scaler = torch.cuda.amp.GradScaler() if args.use_amp else None
+        # initialize the metrics to store after each epoch
+        # (only in classification mode, and only on the main process)
+        metrics_file = args.metrics_output
+        if metrics_file is None and args.model_prefix: metrics_file = args.model_prefix + '_metrics.json'
+        store_metrics = (metrics_file and not args.regression_mode
+                         and (args.backend is None or local_rank == 0))
+        metrics = {'classes': list(data_config.label_value), 'epochs': []}
         for epoch in range(args.num_epochs):
             if args.load_epoch is not None:
                 if epoch <= args.load_epoch:
                     continue
             _logger.info('-' * 50)
             _logger.info('Epoch #%d training' % epoch)
+            train_metrics = {}
+            valid_metrics = {}
+            current_lr = opt.param_groups[0]['lr']
             train(model, loss_func, opt, scheduler, train_loader, dev, epoch,
-                  steps_per_epoch=args.steps_per_epoch, grad_scaler=grad_scaler, tb_helper=tb)
+                  steps_per_epoch=args.steps_per_epoch, grad_scaler=grad_scaler, tb_helper=tb,
+                  **({'metrics_output': train_metrics} if store_metrics else {}))
             if args.model_prefix and (args.backend is None or local_rank == 0):
                 dirname = os.path.dirname(args.model_prefix)
                 if dirname and not os.path.exists(dirname):
@@ -913,7 +954,8 @@ def _main(args):
 
             _logger.info('Epoch #%d validating' % epoch)
             valid_metric = evaluate(model, val_loader, dev, epoch, loss_func=loss_func,
-                                    steps_per_epoch=args.steps_per_epoch_val, tb_helper=tb)
+                                    steps_per_epoch=args.steps_per_epoch_val, tb_helper=tb,
+                                    **({'metrics_output': valid_metrics} if store_metrics else {}))
             is_best_epoch = (
                 valid_metric < best_valid_metric) if args.regression_mode else(
                 valid_metric > best_valid_metric)
@@ -925,6 +967,11 @@ def _main(args):
                     # torch.save(model, args.model_prefix + '_best_epoch_full.pt')
             _logger.info('Epoch #%d: Current validation metric: %.5f (best: %.5f)' %
                          (epoch, valid_metric, best_valid_metric), color='bold')
+            # store the metrics (after each epoch, to have partial results in case the job is interrupted)
+            if store_metrics:
+                metrics['epochs'].append({'epoch': epoch, 'lr': current_lr, 'is_best_epoch': bool(is_best_epoch),
+                                          'train': train_metrics, 'validation': valid_metrics})
+                write_metrics(metrics, metrics_file)
 
     if args.data_test:
         if args.backend is not None and local_rank != 0:

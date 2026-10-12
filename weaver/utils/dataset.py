@@ -27,26 +27,40 @@ def _finalize_inputs(table, data_config):
     # copy labels
     for k in data_config.label_names:
         output[k] = ak.to_numpy(table[k])
-    # transformation
-    for k, params in data_config.preprocess_params.items():
+    # transformation (standardization, clipping and padding) of a single variable
+    # note: the transformed variables are not stored in the table but written directly
+    #       into the stacked output arrays (see below), in order to limit the memory usage.
+    def _transform(k):
+        params = data_config.preprocess_params[k]
         if data_config._auto_standardization and params['center'] == 'auto':
             raise ValueError('No valid standardization params for %s' % k)
+        a = table[k]
         if params['center'] is not None:
-            table[k] = _clip((table[k] - params['center']) * params['scale'], params['min'], params['max'])
+            a = _clip((a - params['center']) * params['scale'], params['min'], params['max'])
         if params['length'] is not None:
             pad_fn = _repeat_pad if params['pad_mode'] == 'wrap' else partial(_pad, value=params['pad_value'])
-            table[k] = pad_fn(table[k], params['length'])
+            a = pad_fn(a, params['length'])
         # check for NaN
-        if np.any(np.isnan(table[k])):
+        if np.any(np.isnan(a)):
             _logger.warning(
                 'Found NaN in %s, silently converting it to 0.', k)
-            table[k] = np.nan_to_num(table[k])
-    # stack variables for each input group
+            a = np.nan_to_num(a)
+        if k in data_config.monitor_variables:
+            table[k] = a
+        return a
+    # transform and stack variables for each input group
     for k, names in data_config.input_dicts.items():
         if len(names) == 1 and data_config.preprocess_params[names[0]]['length'] is None:
-            output['_' + k] = ak.to_numpy(ak.values_astype(table[names[0]], 'float32'))
+            output['_' + k] = ak.to_numpy(ak.values_astype(_transform(names[0]), 'float32'))
         else:
-            output['_' + k] = ak.to_numpy(np.stack([ak.to_numpy(table[n]).astype('float32') for n in names], axis=1))
+            stacked = None
+            for idx, n in enumerate(names):
+                a = ak.to_numpy(_transform(n))
+                if stacked is None:
+                    stacked = np.empty((len(a), len(names)) + a.shape[1:], dtype='float32')
+                stacked[:, idx] = a
+                del a
+            output['_' + k] = stacked
     # copy monitor variables (after transformation)
     for k in data_config.z_variables:
         if k in data_config.monitor_variables:
@@ -108,11 +122,34 @@ def _preprocess(table, data_config, options):
     return table, indices
 
 
+def _release_free_memory():
+    # return freed memory to the operating system.
+    # the preprocessing makes large temporary copies; without this, the memory they occupied
+    # stays reserved by each data loader worker even though it is no longer in use.
+    # (only for glibc, i.e. linux; does nothing on other systems)
+    global _libc
+    if _libc is None:
+        try:
+            import ctypes
+            _libc = ctypes.CDLL('libc.so.6')
+        except OSError:
+            _libc = False
+    if _libc:
+        try:
+            _libc.malloc_trim(0)
+        except AttributeError:
+            _libc = False
+
+
+_libc = None
+
+
 def _load_next(data_config, filelist, load_range, options):
     load_branches = data_config.train_load_branches if options['training'] else data_config.test_load_branches
     table = _read_files(filelist, load_branches, load_range, treename=data_config.treename,
                         branch_magic=data_config.branch_magic, file_magic=data_config.file_magic)
     table, indices = _preprocess(table, data_config, options)
+    _release_free_memory()
     return table, indices
 
 

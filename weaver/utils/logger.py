@@ -3,6 +3,23 @@ import sys
 import os
 
 
+class _ClosingFileHandler(logging.FileHandler):
+    # file handler that closes the file after each message (and re-opens it for the next one).
+    # this is needed to follow the log file while the job is running in case it is on a
+    # network file system such as AFS, which only stores the contents when the file is closed.
+
+    def emit(self, record):
+        super().emit(record)
+        self.acquire()
+        try:
+            if self.stream is not None:
+                stream = self.stream
+                self.stream = None
+                stream.close()
+        finally:
+            self.release()
+
+
 def _configLogger(name, stdout=sys.stdout, filename=None, loglevel=logging.INFO):
     # define a Handler which writes INFO messages or higher to the sys.stdout
     logger = logging.getLogger(name)
@@ -16,7 +33,7 @@ def _configLogger(name, stdout=sys.stdout, filename=None, loglevel=logging.INFO)
         dirname = os.path.dirname(filename)
         if dirname and not os.path.exists(dirname):
             os.makedirs(os.path.dirname(filename))
-        logfile = logging.FileHandler(filename)
+        logfile = _ClosingFileHandler(filename)
         logfile.setLevel(loglevel)
         logfile.setFormatter(logging.Formatter('[%(asctime)s] %(levelname)s: %(message)s'))
         logger.addHandler(logfile)
