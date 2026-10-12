@@ -1,0 +1,222 @@
+# Data configuration for jet classification with ParticleTransformer.
+
+# Version for the per-jet ntuples in
+# /eos/experiment/fcc/ee/analyses/case-studies/aleph/processedMC/1994/zqq/stage2/VTAG-01
+# (same as data_config_parttaggerwithv0.yaml but with different branch names).
+# Other differences with respect to data_config_parttaggerwithv0.yaml:
+# - removed pfcand_linearSignedIP3D(Sig) and pfcand_transverse/longitudinalJetDistance
+#   (not available in these ntuples).
+# - increased the maximum number of V0 candidates from 5 to 10
+#   (these ntuples have many more V0 candidates per jet).
+# - decreased the maximum number of particles from 128 to 64
+#   (no jet has more than 60 particles, and this speeds up the data loading).
+# Variables marked with 'auto' are to be standardized;
+# the version with fixed standardization constants (in the 'standardized' folder)
+# can be made with dataset-exploration/make_standardized_config.py.
+
+selection:
+  ( ( jet_pT > 10. )
+  & ( np.abs(jet_eta) < 0.9 ) )
+
+test_time_selection:
+  ( ( jet_pT > 10. )
+  & ( np.abs(jet_eta) < 0.9 ) )
+
+new_variables:
+   # labels (no gluon jets in these ntuples)
+   recojet_isUDG: recojet_isU + recojet_isD
+   # masks
+   # (note: pfcand_mask also exists as a branch, but is overridden here)
+   pfcand_mask: ak.ones_like(pfcand_pt)
+   sv_mask: ak.ones_like(sv_chi2_norm)
+   v0_mask: ak.ones_like(v0_chi2_norm)
+   # pfcand input features
+   pfcand_pt_log: np.log(pfcand_pt)
+   pfcand_e_log: np.log(pfcand_e)
+   pfcand_drrel: np.hypot(pfcand_thetarel, pfcand_phirel)
+   # sv input features
+   sv_pt_proxy: np.multiply(sv_p, np.sin(sv_thetarel))
+   sv_px_proxy: np.multiply(sv_pt_proxy, np.cos(sv_phirel))
+   sv_py_proxy: np.multiply(sv_pt_proxy, np.sin(sv_phirel))
+   sv_pz_proxy: np.multiply(sv_p, np.cos(sv_thetarel))
+   sv_e_proxy: np.sqrt(np.square(sv_px_proxy) + np.square(sv_py_proxy) + np.square(sv_pz_proxy) + np.square(sv_mass))
+   # v0 input features
+   v0_pt_proxy: np.multiply(v0_p, np.sin(v0_thetarel))
+   v0_px_proxy: np.multiply(v0_pt_proxy, np.cos(v0_phirel))
+   v0_py_proxy: np.multiply(v0_pt_proxy, np.sin(v0_phirel))
+   v0_pz_proxy: np.multiply(v0_p, np.cos(v0_thetarel))
+   v0_e_proxy: np.sqrt(np.square(v0_px_proxy) + np.square(v0_py_proxy) + np.square(v0_pz_proxy) + np.square(v0_invM))
+
+preprocess:
+  method: manual
+  data_fraction: 0.5
+
+inputs:
+   pf_points:
+      length: 64
+      pad_mode: wrap
+      vars: 
+         - [pfcand_thetarel, 0.293023, 1.78713]
+         - [pfcand_phirel, -0.000547033, 0.473028]
+   pf_features:
+      length: 64
+      pad_mode: wrap
+      vars: 
+         - [pfcand_pt_log, 0.00410809, 0.822289]
+         - [pfcand_e_log, 0.16695, 0.847787]
+         - [pfcand_ptrel_log, -1.55285, 1.92203]
+         - [pfcand_erel_log, -1.58089, 1.93731]
+         - [pfcand_drrel, 1.70002, 1.0107]
+         - [pfcand_thetarel, 0.293023, 1.78713]
+         - [pfcand_phirel, -0.000547033, 0.473028]
+         - [pfcand_charge, null]
+         - [pfcand_dxy, 5.10172e-05, 25.3267]
+         - [pfcand_dz, -5.05546e-06, 21.0687]
+         - [pfcand_btagSip2dVal, 0.00176012, 11.9276]
+         - [pfcand_btagSip2dSig, 0.231738, 0.251222]
+         - [pfcand_btagSip3dVal, 0.00276302, 6.80971]
+         - [pfcand_btagSip3dSig, 0.280882, 0.308209]
+         - [pfcand_btagJetDistVal, -1.24012e-05, 25.5977]
+         - [pfcand_btagJetDistSig, -0.00100048, 0.875987]
+         - [pfcand_isChargedHad, null]
+         - [pfcand_isNeutralHad, null]
+         - [pfcand_isGamma, null]
+         - [pfcand_isEl, null]
+         - [pfcand_isMu, null]
+         - [pfcand_trackChi2Norm, 0.4, 0.714286]
+         - [pfcand_nTrackHits_VDET, 0, 0.5]
+         - [pfcand_nTrackHits_ITC, 0, 0.142857]
+         - [pfcand_nTrackHits_TPC, 4, 0.0625]
+         - [pfcand_dEdx_pads_type, null]
+         - [pfcand_dEdx_pads_value, 1.20465, 3.78973]
+         - [pfcand_dEdx_pads_error, 0.132297, 20.3915]
+         - [pfcand_dEdx_wires_type, null]
+         - [pfcand_dEdx_wires_value, 1.10485, 4.23471]
+         - [pfcand_dEdx_wires_error, 0.10459, 10.4032]
+         - [pfcand_PID_pval_pads_ele, -4.11685e-05, 60.6768]
+         - [pfcand_PID_pval_pads_mu, -0.0798628, 1.45589]
+         - [pfcand_PID_pval_pads_pi, -0.0365146, 1.46173]
+         - [pfcand_PID_pval_pads_kaon, 0, 2.11391]
+         - [pfcand_PID_pval_pads_proton, 0, 4.4395]
+         - [pfcand_PID_pval_wires_ele, -1.50159e-08, 147.726]
+         - [pfcand_PID_pval_wires_mu, -0.083159, 1.28935]
+         - [pfcand_PID_pval_wires_pi, -0.00720097, 1.32282]
+         - [pfcand_PID_pval_wires_kaon, 0, 3.25437]
+         - [pfcand_PID_pval_wires_proton, 0, 13.553]
+   pf_vectors:
+      length: 64
+      pad_mode: wrap
+      vars: 
+         - [pfcand_px, null]
+         - [pfcand_py, null]
+         - [pfcand_pz, null]
+         - [pfcand_e, null]
+   pf_mask:
+      length: 64
+      pad_mode: constant
+      vars: 
+         - [pfcand_mask, null]
+
+   sv_points:
+      length: 5
+      pad_mode: constant
+      vars:
+         - [sv_thetarel, -0.0060099, 0.947703]
+         - [sv_phirel, 0.000403854, 3.96112]
+   sv_features:
+      length: 5
+      pad_mode: constant
+      vars:
+         - [sv_dx, 0.00201848, 0.735525]
+         - [sv_dy, -0.000709338, 0.715345]
+         - [sv_dz, -0.00151968, 0.602411]
+         - [sv_thetarel, -0.0060099, 0.947703]
+         - [sv_phirel, 0.000403854, 3.96112]
+         - [sv_p, 5.89189, 0.130448]
+         - [sv_prel, 0.14588, 5.21116]
+         - [sv_ntracks, 2, 1]
+         - [sv_mass, 0.600653, 1.32001]
+         - [sv_correctedMass, 1.92745, 0.366421]
+         - [sv_dxy, 0.594975, 0.0627347]
+         - [sv_dxyz, 0.721419, 0.0296407]
+         - [sv_chi2, 0.963295, 0.239133]
+         - [sv_chi2_norm, 0.629882, 0.41955]
+         - [sv_cosPointing, 0.99057, 7.4533]
+   sv_vectors:
+      length: 5
+      pad_mode: constant
+      vars:
+         - [sv_px_proxy, null]
+         - [sv_py_proxy, null]
+         - [sv_pz_proxy, null]
+         - [sv_e_proxy, null]
+   sv_mask:
+      length: 5
+      pad_mode: constant
+      vars:
+         - [sv_mask, null]
+
+   v0_points:
+      length: 10
+      pad_mode: constant
+      vars:
+         - [v0_thetarel, -9.63061e-05, 2.69591]
+         - [v0_phirel, -0.000840774, 3.63579]
+   v0_features:
+      length: 10
+      pad_mode: constant
+      vars:
+         - [v0_dx, 0.0146717, 0.0932493]
+         - [v0_dy, -0.0246572, 0.0898633]
+         - [v0_dz, -0.0038218, 0.0833674]
+         - [v0_thetarel, -9.63061e-05, 2.69591]
+         - [v0_phirel, -0.000840774, 3.63579]
+         - [v0_p, 3.24639, 0.181942]
+         - [v0_prel, 0.0804102, 7.36848]
+         - [v0_ntracks, 2, 1]
+         - [v0_invM, 1.10022, 1.58629]
+         - [v0_correctedMass, 0.546396, 2.16047]
+         - [v0_dxy, 10.1227, 0.0442084]
+         - [v0_dxyz, 16.057, 0.0211808]
+         - [v0_chi2, 0.160481, 0.512672]
+         - [v0_chi2_norm, 0.160481, 0.512672]
+         - [v0_cosPointing, 0.999888, 2045]
+   v0_vectors:
+      length: 10
+      pad_mode: constant
+      vars:
+         - [v0_px_proxy, null]
+         - [v0_py_proxy, null]
+         - [v0_pz_proxy, null]
+         - [v0_e_proxy, null]
+   v0_mask:
+      length: 10
+      pad_mode: constant
+      vars:
+         - [v0_mask, null]
+
+labels:
+   type: simple
+   value: [recojet_isB, recojet_isC, recojet_isS, recojet_isUDG]
+
+observers:
+   - jet_pT
+   - jet_eta
+   - jet_theta
+   - jet_phi
+   - jet_e
+   - jet_mass
+   - jet_nconst
+
+weights:
+   use_precomputed_weights: false
+   reweight_basewgt: np.ones(len(jet_pT))
+   reweight_method: flat
+   reweight_threshold: 0
+   reweight_load_fraction: 1.
+   reweight_vars:
+      jet_pT: [0., 30000.]
+      jet_e: [0., 30000.]
+   reweight_discard_under_overflow: false
+   reweight_classes: [recojet_isB, recojet_isC, recojet_isS, recojet_isUDG]
+   class_weights: [1, 1, 1, 1]
