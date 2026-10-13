@@ -78,11 +78,13 @@ def initJobScript(name,
 def makeJobDescription(name, exe, argstring=None, 
                        stdout=None, stderr=None, log=None,
                        cpus=1, gpus=None, mem=1024, disk=10240, 
-                       proxy=None, jobflavour=None):
+                       proxy=None, jobflavour=None, requirements=None):
     ### create a single job description txt file
     # note: exe can for example be a runnable bash script
     # note: argstring is a single string containing the arguments to exe (space-separated)
     # note: for job flavour: see here: https://batchdocs.web.cern.ch/local/submit.html
+    # note: requirements is an optional condor requirements expression,
+    #       e.g. 'regexp("A100", TARGET.GPUs_DeviceName)' to request a specific type of GPU.
     
     # parse arguments
     name = os.path.splitext(name)[0]
@@ -102,6 +104,7 @@ def makeJobDescription(name, exe, argstring=None,
         if gpus is not None: f.write('request_gpus = {}\n'.format(gpus))
         f.write('request_memory = {}\n'.format(mem))
         f.write('request_disk = {}\n'.format(disk))
+        if requirements is not None: f.write('requirements = {}\n'.format(requirements))
         if proxy is not None: 
             f.write('x509userproxy = {}\n'.format(proxy))
             f.write('use_x509userproxy = true\n\n')
@@ -169,6 +172,29 @@ def submitCommandsAsCondorCluster(name, commands, stdout=None, stderr=None, log=
     # finally submit the job
     submitCondorJob(jdname)
 
+def makeMirrorCommands(name, mirror_dir, mirror_files=None):
+    ### make the lines to add to a job script for copying the job files to another directory
+    # the copy is done when the job script exits (also if one of its commands fails).
+    # the stdout and stderr files are copied from the scratch directory of the job
+    # (where condor keeps them while the job is running),
+    # under the same names as they will get in the submission directory.
+    # note: assumes the default naming of the stdout, stderr and log files (see makeJobDescription).
+    name = os.path.splitext(name)[0]
+    cwd = os.path.abspath(os.getcwd())
+    mirror_dir = os.path.abspath(mirror_dir)
+    if mirror_files is None: mirror_files = []
+    lines = []
+    lines.append('mirror_job_files() {')
+    lines.append("    jobid=$(grep -E '^(ClusterId|ProcId) = ' $_CONDOR_JOB_AD | sort | awk '{print $3}' | paste -sd_)")
+    lines.append('    cp $_CONDOR_SCRATCH_DIR/_condor_stdout {}/{}_out_$jobid'.format(mirror_dir, name))
+    lines.append('    cp $_CONDOR_SCRATCH_DIR/_condor_stderr {}/{}_err_$jobid'.format(mirror_dir, name))
+    lines.append('    cp {}/{}_log_$jobid {}'.format(cwd, name, mirror_dir))
+    for mirror_file in mirror_files:
+        lines.append('    cp {} {}'.format(os.path.abspath(mirror_file), mirror_dir))
+    lines.append('}')
+    lines.append('trap mirror_job_files EXIT')
+    return '\n'.join(lines) + '\n'
+
 def submitCommandsAsCondorJob(name, commands, **kwargs):
     ### submit a set of commands as a single job
     # commands is a list of strings, each string represents a single command (executable + args)
@@ -182,10 +208,20 @@ def submitCommandsAsCondorJobs(name, commands, stdout=None, stderr=None, log=Non
             cmssw_version=None,
             conda_activate=None,
             conda_env=None,
-            jobflavour=None):
+            jobflavour=None,
+            requirements=None,
+            mirror_dir=None,
+            mirror_files=None):
     ### submit multiple sets of commands as jobs (one job per set)
     # commands is a list of lists of strings, each string represents a single command
     # the commands can be anything and are not necessarily same executable or number of args.
+    # note: if mirror_dir is provided, the job files (executable, job description, stdout, stderr, log)
+    #       are copied to that directory (in addition to their normal location, i.e. the current directory).
+    #       mirror_files is an optional list of additional files to copy when the job ends.
+    #       the executable and job description are copied at submission, the others when the job ends.
+    #       caveats: the copy of the condor log lacks the last entries (job termination),
+    #       since those are only written after the job has ended;
+    #       and nothing is copied at the end if the job is killed abruptly (e.g. when out of memory).
     for commandset in commands:
         # parse arguments
         name = os.path.splitext(name)[0]
@@ -195,10 +231,16 @@ def submitCommandsAsCondorJobs(name, commands, stdout=None, stderr=None, log=Non
         initJobScript(shname, home=home, cmssw_version=cmssw_version, proxy=proxy,
           conda_activate=conda_activate, conda_env=conda_env)
         with open(shname,'a') as script:
+             if mirror_dir is not None:
+                 script.write(makeMirrorCommands(name, mirror_dir, mirror_files=mirror_files))
              for cmd in commandset: script.write(cmd+'\n')
         # then make the job description
         makeJobDescription(name, shname, stdout=stdout, stderr=stderr, log=log,
                             cpus=cpus, gpus=gpus, mem=mem, disk=disk, proxy=proxy,
-                            jobflavour=jobflavour)
+                            jobflavour=jobflavour, requirements=requirements)
+        # copy the executable and job description to the mirror directory
+        if mirror_dir is not None:
+            if not os.path.exists(mirror_dir): os.makedirs(mirror_dir)
+            os.system('cp {} {} {}'.format(shname, jdname, mirror_dir))
         # finally submit the job
         submitCondorJob(jdname)

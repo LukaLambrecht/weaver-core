@@ -62,7 +62,7 @@ if __name__=='__main__':
     # output dir
     #output_base = thisdir
     output_base = '/eos/user/l/llambrec/aleph-weaver-output'
-    outputdir = os.path.join(output_base, 'output_test_20261012_vtag01_nepochs_30_nsteps_300_batch_512_2')
+    outputdir = os.path.join(output_base, 'output_test_20261012_vtag01_nepochs_30_nsteps_300_batch_512_3')
     
     # network settings
     num_epochs = 30
@@ -76,6 +76,12 @@ if __name__=='__main__':
     # compute settings
     # GPU: use gpus = '0' to use one GPU, and gpus = None to not use a GPU.
     gpus = '0'
+    # GPU type (only for condor): use gpu_name = None to accept any type of GPU,
+    # or e.g. gpu_name = 'A100' to only run on GPUs with this string in their name.
+    # (note: the training speed differs a lot between types, e.g. a T4 is much slower than an A100;
+    #  use the following command to see the available types:
+    #  condor_status -constraint 'TotalGPUs > 0' -af GPUs_DeviceName | sort | uniq -c)
+    gpu_name = None
     # CPU: use ncpus = <requested number of CPUs>.
     # note that the number of workers is set to this number (see below).
     ncpus = 8
@@ -169,6 +175,11 @@ if __name__=='__main__':
         }
         if gpus is not None and gpus != '""':
             condor_options['gpus'] = 1
+            if gpu_name is not None:
+                condor_options['requirements'] = f'regexp("{gpu_name}", TARGET.GPUs_DeviceName)'
+        # also keep a copy of the job files in the output directory
+        condor_options['mirror_dir'] = outputdir
+        condor_options['mirror_files'] = [logfile]
         ct.submitCommandAsCondorJob(f'cjob_weaver_{tag}', cmd, **condor_options)
     
     elif runmode=='slurm':
