@@ -224,7 +224,7 @@ def plot_roc_multi(events,
 
     # same with log scale on x-axis
     ax.set_xscale('log')
-    ax.set_xlim((1e-5, 1))
+    ax.set_xlim((1e-6, 1))
     fig.tight_layout()
     figname = os.path.join(outputdir, 'roc_log.png')
     fig.savefig(figname)

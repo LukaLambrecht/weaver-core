@@ -59,15 +59,17 @@ if __name__=='__main__':
     # Apranik's vtag01 ntuples
     sample_config_test = os.path.abspath(f'configs/samplelists/{loc}/samples_testing_vtag01.yaml')
     
+    # network settings
+    num_epochs = 960
+    steps_per_epoch = 300
+    steps_per_epoch_val = 150
+    batch_size = 1024
+
     # output dir
     #output_base = thisdir
     output_base = '/eos/user/l/llambrec/aleph-weaver-output'
-    outputdir = os.path.join(output_base, 'output_test_20261012_vtag01_nepochs_30_nsteps_300_batch_512_3')
-    
-    # network settings
-    num_epochs = 30
-    steps_per_epoch = 300
-    batch_size = 512
+    outputdir = os.path.join(output_base,
+      f'output_test_20261013_vtag01_nepochs_{num_epochs}_nsteps_{steps_per_epoch}_batch_{batch_size}')
     
     # runmode
     # (choose from 'local', 'condor', and 'slurm')
@@ -130,6 +132,7 @@ if __name__=='__main__':
     cmd += f' --network-config {this_model_config}'
     cmd += f' --num-epochs {num_epochs}'
     cmd += f' --steps-per-epoch {steps_per_epoch}'
+    cmd += f' --steps-per-epoch-val {steps_per_epoch_val}'
     cmd += f' --batch-size {batch_size}'
     cmd += f' --model-prefix {model_prefix}'
     cmd += f' --data-test {this_sample_config_test}'
@@ -168,7 +171,8 @@ if __name__=='__main__':
         condor_options = {
             'conda_activate': f'source {miniforge}',
             'conda_env': 'weaver',
-            'jobflavour': 'tomorrow',
+            # (time limits: 'tomorrow' = 1 day, 'testmatch' = 3 days, 'nextweek' = 1 week)
+            'jobflavour': 'testmatch',
             'cpus': ncpus,
             'mem': 64000,
             'disk': 48000
